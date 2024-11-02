@@ -1,13 +1,21 @@
 from django import forms
-from .models import Dueño, Vehiculo, Trabajador, Cita, Pago, Servicio, Proceso, Perfil, Cotizacion, DetalleCotizacion, Notificacion
+from .models import Dueño, Vehiculo, Trabajador, Supervisor, Cita, Pago, Servicio, Proceso, Perfil, Cotizacion, DetalleCotizacion, Notificacion
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
-
+from .models import CustomUser
 
 # Get the custom user model
 User = get_user_model()
+
+
+# Formulario para el registro administradores por parte del superadmin
+
+class AdminCreationForm(UserCreationForm):
+    class Meta:
+        model = CustomUser
+        fields = ['email', 'password1', 'password2', 'is_admin']
 
 # Formulario para el registro del trabajador por parte de un administrador
 
@@ -32,9 +40,26 @@ class AdminTrabajadorForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Asegúrate de que solo los administradores puedan elegir el rol
-        if not self.request.user.is_superuser:
-            self.fields['rol'].disabled = True
+        self.fields['rol'].initial = 'Administrador'
+        self.fields['rol'].disabled = True
+
+
+# Formulario para el registro del supervisor por parte de un administrador
+
+class AdminSupervisorForm(forms.ModelForm):
+    class Meta:
+        model = Supervisor
+        fields = ['rut', 'nombre', 'apellido', 'telefono',
+                  'direccion', 'disponibilidad', 'estado']
+        widgets = {
+            'rut': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese RUT'}),
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese nombre'}),
+            'apellido': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese apellido'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese teléfono'}),
+            'direccion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese dirección'}),
+            'disponibilidad': forms.Select(attrs={'class': 'form-control'}),
+            'estado': forms.Select(attrs={'class': 'form-control'}),
+        }
 
 # Formulario para registrar la cuenta
 
@@ -46,8 +71,13 @@ class UserRegistrationForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name',
+        fields = ['email', 'nombre', 'apellido',
                   'password', 'password_confirm']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in self.fields:
+            self.fields[field_name].label_suffix = ''
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
@@ -80,47 +110,32 @@ class UserRegistrationForm(forms.ModelForm):
             perfil = Perfil(user=user, rol='Cliente')  # Rol predeterminado
             perfil.save()
 
-# Formulario para el registro del dueño (cliente)
 
+# Formulario para el registro del dueño (cliente)
 
 class DueñoForm(forms.ModelForm):
     class Meta:
         model = Dueño
-        fields = ['rut', 'nombre', 'apellido',
-                  'telefono', 'email', 'direccion']
+        fields = ['rut', 'nombre', 'apellido', 'telefono', 'direccion']
         widgets = {
             'rut': forms.TextInput(attrs={'class': 'form-control'}),
-            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
-            'apellido': forms.TextInput(attrs={'class': 'form-control'}),
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
+            'apellido': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
             'telefono': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'direccion': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
-# Formulario para el registro de trabajadores
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['nombre'].initial = user.nombre
+            self.fields['apellido'].initial = user.apellido
+        for field_name in self.fields:
+            self.fields[field_name].label_suffix = ''
 
 
-class TrabajadorForm(forms.ModelForm):
-    class Meta:
-        model = Trabajador
-        fields = ['rut', 'nombre', 'apellido', 'telefono', 'email',
-                  'direccion', 'disponibilidad', 'estado', 'perfil', 'rol']
-        widgets = {
-            'rut': forms.TextInput(attrs={'class': 'form-control'}),
-            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
-            'apellido': forms.TextInput(attrs={'class': 'form-control'}),
-            'telefono': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'direccion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'disponibilidad': forms.TextInput(attrs={'class': 'form-control'}),
-            'estado': forms.TextInput(attrs={'class': 'form-control'}),
-            'perfil': forms.Select(attrs={'class': 'form-control'}),
-            'rol': forms.TextInput(attrs={'class': 'form-control'}),
-        }
-
-
-# Formulario para el registro de vehículos
-
+# Formulario para el registro de vehiculos
 
 class VehiculoForm(forms.ModelForm):
     class Meta:
@@ -134,14 +149,18 @@ class VehiculoForm(forms.ModelForm):
             'año': forms.NumberInput(attrs={'class': 'form-control', 'min': '1886'}),
             'color': forms.TextInput(attrs={'class': 'form-control'}),
             'kilometraje': forms.NumberInput(attrs={'class': 'form-control'}),
-            'tipo_combustible': forms.TextInput(attrs={'class': 'form-control'}),
+            'tipo_combustible': forms.Select(attrs={'class': 'form-control'}),
             'fecha_ultima_revision': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'estado_vehiculo': forms.TextInput(attrs={'class': 'form-control'}),
+            'estado_vehiculo': forms.Select(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in self.fields:
+            self.fields[field_name].label_suffix = ''
 
 
 # Formulario para la gestión de citas
-
 
 class CitaForm(forms.ModelForm):
     class Meta:
@@ -156,15 +175,17 @@ class CitaForm(forms.ModelForm):
             'vehiculo': forms.Select(attrs={'class': 'form-control'}),
         }
 
-    def clean_fecha_y_hora(self):
-        fecha = self.cleaned_data.get('fecha_y_hora')
-        if fecha < timezone.now():
-            raise forms.ValidationError(
-                "La fecha de la cita no puede estar en el pasado.")
-        return fecha
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        for field_name in self.fields:
+            self.fields[field_name].label_suffix = ''
+        # Ocultar campo estado_cita si el usuario no es admin o supervisor
+        if user and not user.groups.filter(name__in=['Administrador', 'Supervisor']).exists():
+            self.fields['estado_cita'].widget = forms.HiddenInput()
+
 
 # Formulario para la gestion de servicios
-
 
 class ServicioForm(forms.ModelForm):
     class Meta:
@@ -179,8 +200,13 @@ class ServicioForm(forms.ModelForm):
             'garantia': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
-# Formulario de pago
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in self.fields:
+            self.fields[field_name].label_suffix = ''
 
+
+# Formulario de pago
 
 class PagoForm(forms.ModelForm):
     class Meta:
@@ -189,13 +215,17 @@ class PagoForm(forms.ModelForm):
         widgets = {
             'monto': forms.NumberInput(attrs={'class': 'form-control'}),
             'metodo_pago': forms.Select(attrs={'class': 'form-control'}),
-            'fecha_pago': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'estado_pago': forms.Select(attrs={'class': 'form-control'}),
             'proceso': forms.Select(attrs={'class': 'form-control'}),
         }
 
-# Formulario para la gestion de procesos
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in self.fields:
+            self.fields[field_name].label_suffix = ''
 
+
+# Formulario para la gestion de procesos
 
 class ProcesoForm(forms.ModelForm):
     class Meta:
@@ -203,34 +233,43 @@ class ProcesoForm(forms.ModelForm):
         fields = ['fase_proceso', 'descripcion', 'fecha_inicio', 'fecha_fin',
                   'estado_proceso', 'prioridad', 'comentarios', 'notificaciones', 'trabajador']
         widgets = {
-            'fase_proceso': forms.TextInput(attrs={'class': 'form-control'}),
+            'fase_proceso': forms.Select(attrs={'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': '3'}),
             'fecha_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'fecha_fin': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'estado_proceso': forms.TextInput(attrs={'class': 'form-control'}),
-            'prioridad': forms.TextInput(attrs={'class': 'form-control'}),
+            'estado_proceso': forms.Select(attrs={'class': 'form-control'}),
+            'prioridad': forms.Select(attrs={'class': 'form-control'}),
             'comentarios': forms.Textarea(attrs={'class': 'form-control', 'rows': '3'}),
-            'notificaciones': forms.Select(attrs={'class': 'form-control'}),
+            'notificaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': '3'}),
             'trabajador': forms.Select(attrs={'class': 'form-control'}),
+            # cambiar el forms de notificaciones
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in self.fields:
+            self.fields[field_name].label_suffix = ''
 
 
 # Formulario de notificaciones
 
-
 class NotificacionForm(forms.ModelForm):
     class Meta:
         model = Notificacion
-        # Asegúrate de que los campos coincidan con los del modelo
         fields = ['mensaje', 'estado', 'proceso']
         widgets = {
             'mensaje': forms.Textarea(attrs={'class': 'form-control', 'rows': '3'}),
-            'estado': forms.TextInput(attrs={'class': 'form-control'}),
+            'estado': forms.Select(attrs={'class': 'form-control'}),
             'proceso': forms.Select(attrs={'class': 'form-control'}),
         }
 
-# Formulario de cotizacion
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in self.fields:
+            self.fields[field_name].label_suffix = ''
 
+
+# Formulario de cotizacion
 
 class CotizacionForm(forms.ModelForm):
     class Meta:
@@ -243,8 +282,13 @@ class CotizacionForm(forms.ModelForm):
             'vehiculo': forms.Select(attrs={'class': 'form-control'}),
         }
 
-# Formulario de detalle de cotización
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in self.fields:
+            self.fields[field_name].label_suffix = ''
 
+
+# Formulario de detalle de cotizacion
 
 class DetalleCotizacionForm(forms.ModelForm):
     class Meta:
@@ -254,3 +298,8 @@ class DetalleCotizacionForm(forms.ModelForm):
             'cotizacion': forms.Select(attrs={'class': 'form-control'}),
             'servicio': forms.Select(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in self.fields:
+            self.fields[field_name].label_suffix = ''

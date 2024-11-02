@@ -2,14 +2,17 @@
 <div class="container mt-5">
   <h2>Lista de Vehículos</h2>
 
-  <!-- Vehiculos con sus procesos -->
+  {% if messages %}
+  <div class="alert alert-info" role="alert">
+    {% for message in messages %} {{ message }} {% endfor %}
+  </div>
+  {% endif %}
+
   <ul>
     {% for item in vehiculos_procesos %}
     <li>
-      <h3>
-        {{ item.vehiculo.marca }} {{ item.vehiculo.modelo }} ({{
-        item.vehiculo.patente }})
-      </h3>
+      <h3>{{ item.vehiculo.marca }} {{ item.vehiculo.modelo }}</h3>
+      <p>Patente: {{item.vehiculo.patente }}</p>
       <p>Año: {{ item.vehiculo.año }}</p>
       <p>Kilometraje: {{ item.vehiculo.kilometraje }} km</p>
 
@@ -27,6 +30,7 @@
     </li>
     {% endfor %}
   </ul>
+
   <table class="table table-striped">
     <thead>
       <tr>
@@ -44,7 +48,7 @@
     <tbody>
       {% for vehiculo in vehiculos %}
       <tr>
-        <td>{{ vehiculo.id_vehiculo }}</td>
+        <td>{{ vehiculo.pk }}</td>
         <td>{{ vehiculo.patente }}</td>
         <td>{{ vehiculo.marca }}</td>
         <td>{{ vehiculo.modelo }}</td>
@@ -54,12 +58,12 @@
         <td>{{ vehiculo.tipo_combustible }}</td>
         <td>
           <a
-            href="{% url 'editar_vehiculo' vehiculo.id_vehiculo %}"
+            href="{% url 'editar_vehiculo' vehiculo.pk %}"
             class="btn btn-warning btn-sm"
             >Editar</a
           >
           <a
-            href="{% url 'eliminar_vehiculo' vehiculo.id_vehiculo %}"
+            href="{% url 'eliminar_vehiculo' vehiculo.id %}"
             class="btn btn-danger btn-sm"
             >Eliminar</a
           >

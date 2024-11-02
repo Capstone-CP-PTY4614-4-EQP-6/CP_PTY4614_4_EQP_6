@@ -1,0 +1,58 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container mt-5">
+  <h2>Lista de Supervisores</h2>
+
+  <a href="{% url 'crear_supervisor' %}" class="btn btn-primary mb-3"
+    >Registrar Nuevo Supervisor</a
+  >
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>RUT</th>
+        <th>Nombre</th>
+        <th>Apellido</th>
+        <th>Teléfono</th>
+        <th>Email</th>
+        <th>Dirección</th>
+        <th>Disponibilidad</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for supervisor in supervisores %}
+      <tr>
+        <td>{{ supervisor.rut }}</td>
+        <td>{{ supervisor.nombre }}</td>
+        <td>{{ supervisor.apellido }}</td>
+        <td>{{ supervisor.telefono }}</td>
+        <td>{{ supervisor.email }}</td>
+        <td>{{ supervisor.direccion }}</td>
+        <td>{{ supervisor.disponibilidad }}</td>
+        <td>{{ supervisor.estado }}</td>
+        <td>
+          <a
+            href="{% url 'editar_supervisor' supervisor.id %}"
+            class="btn btn-warning btn-sm"
+            >Editar</a
+          >
+          <a
+            href="{% url 'eliminar_supervisor' supervisor.id %}"
+            class="btn btn-danger btn-sm"
+            onclick="return confirm('¿Estás seguro de que deseas eliminar a {{ supervisor.nombre }} {{ supervisor.apellido }}?');"
+            >Eliminar</a
+          >
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="9" class="text-center">
+          No hay supervisores registrados.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

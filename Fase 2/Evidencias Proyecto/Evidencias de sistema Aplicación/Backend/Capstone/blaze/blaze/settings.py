@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'miapp',
     'crispy_forms',
     'crispy_bootstrap4',
+    'fcm_django',
 ]
 
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
@@ -94,6 +95,12 @@ DATABASES = {
 }
 
 AUTH_USER_MODEL = 'miapp.CustomUser'
+
+# Firebase
+
+FCM_DJANGO_SETTINGS = {
+    "FCM_SERVER_KEY": "AIzaSyAW7rGZXp6Vzn6NaYGlTx9WQEDZaCzbSL8",
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

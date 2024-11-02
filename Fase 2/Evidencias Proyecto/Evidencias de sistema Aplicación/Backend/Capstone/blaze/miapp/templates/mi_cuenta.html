@@ -15,44 +15,73 @@
   <!-- Vehiculos -->
   <h3>Tus Vehículos:</h3>
   <ul class="list-group mb-4">
-    {% for vehiculo in vehiculos %}
+    {% if vehiculos %} {% for vehiculo in vehiculos %}
     <li class="list-group-item">
-      <strong>Patente:</strong> {{ vehiculo.patente }} -
-      <strong>Modelo:</strong> {{ vehiculo.marca }} {{ vehiculo.modelo }} ({{
-      vehiculo.año }})
+      <strong>Patente:</strong> {{ vehiculo.patente }}
+      <strong>Marca:</strong> {{ vehiculo.marca }}
+      <strong>Modelo:</strong> {{vehiculo.modelo }}
+      <strong>Año:</strong> {{vehiculo.año }}
     </li>
-    {% empty %}
+    {% endfor %} {% else %}
     <li class="list-group-item">No tienes vehículos registrados.</li>
-    {% endfor %}
+    {% endif %}
   </ul>
 
   <!-- Procesos -->
   <h3>Tus Procesos:</h3>
   <ul class="list-group mb-4">
-    {% for proceso in procesos %}
+    {% if procesos %} {% for proceso in procesos %}
     <li class="list-group-item">
       <strong>Fase del Proceso:</strong> {{ proceso.fase_proceso }} -
       <strong>Descripción:</strong> {{ proceso.descripcion }} -
       <strong>Estado:</strong> {{ proceso.estado_proceso }} -
       <strong>Prioridad:</strong> {{ proceso.prioridad }}
     </li>
-    {% empty %}
+    {% endfor %} {% else %}
     <li class="list-group-item">No tienes procesos en curso.</li>
-    {% endfor %}
+    {% endif %}
   </ul>
 
   <!-- Pagos -->
   <h3>Tus Pagos:</h3>
   <ul class="list-group mb-4">
-    {% for pago in pagos %}
+    {% if pagos %} {% for pago in pagos %}
     <li class="list-group-item">
       <strong>Monto:</strong> {{ pago.monto }} CLP -
       <strong>Método de Pago:</strong> {{ pago.metodo_pago }} -
       <strong>Estado:</strong> {{ pago.estado_pago }}
     </li>
-    {% empty %}
+    {% endfor %} {% else %}
     <li class="list-group-item">No tienes pagos registrados.</li>
-    {% endfor %}
+    {% endif %}
+  </ul>
+
+  <!-- Citas -->
+  <h3>Tus Citas:</h3>
+  <ul class="list-group mb-4">
+    {% if citas %} {% for cita in citas %}
+    <li class="list-group-item">
+      <strong>Fecha y Hora:</strong> {{ cita.fecha_y_hora }} -
+      <strong>Motivo:</strong> {{ cita.motivo }} - <strong>Estado:</strong> {{
+      cita.estado_cita }} - <strong>Ubicación:</strong> {{ cita.ubicacion }}
+    </li>
+    {% endfor %} {% else %}
+    <li class="list-group-item">No tienes citas registradas.</li>
+    {% endif %}
+  </ul>
+
+  <!-- Cotizaciones -->
+  <h3>Tus Cotizaciones:</h3>
+  <ul class="list-group mb-4">
+    {% if cotizaciones %} {% for cotizacion in cotizaciones %}
+    <li class="list-group-item">
+      <strong>Monto:</strong> {{ cotizacion.monto }} CLP -
+      <strong>Descripción:</strong> {{ cotizacion.descripcion }} -
+      <strong>Estado:</strong> {{ cotizacion.estado_cotizacion }}
+    </li>
+    {% endfor %} {% else %}
+    <li class="list-group-item">No tienes cotizaciones registradas.</li>
+    {% endif %}
   </ul>
 </div>
 {% endblock %}

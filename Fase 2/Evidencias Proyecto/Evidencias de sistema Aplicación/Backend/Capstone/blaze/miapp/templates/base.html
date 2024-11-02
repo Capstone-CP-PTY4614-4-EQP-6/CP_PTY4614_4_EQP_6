@@ -18,6 +18,10 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
     />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
     <link rel="stylesheet" href="{% static 'base.css' %}" />
     {% block extra_head %}{% endblock %}
   </head>
@@ -38,10 +42,6 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav">
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'lista_citas' %}">Citas</a>
-            </li>
-
             {% if user.is_authenticated %} {% if user.perfil.rol == 'dueño' %}
             <li class="nav-item">
               <a class="nav-link" href="{% url 'mi_cuenta' %}">Mi Cuenta</a>
@@ -73,13 +73,33 @@
               </form>
             </li>
             {% else %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'login' %}">Iniciar Sesión</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'registrar_usuario' %}"
-                >Registrar Usuario</a
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link dropdown-toggle"
+                href="#"
+                role="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
               >
+                Acciones
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <a class="dropdown-item" href="{% url 'mi_cuenta' %}"
+                    >Mi Cuenta</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'registrar_usuario' %}"
+                    >Registrar</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'login' %}"
+                    >Iniciar Sesión</a
+                  >
+                </li>
+              </ul>
             </li>
             {% endif %}
           </ul>

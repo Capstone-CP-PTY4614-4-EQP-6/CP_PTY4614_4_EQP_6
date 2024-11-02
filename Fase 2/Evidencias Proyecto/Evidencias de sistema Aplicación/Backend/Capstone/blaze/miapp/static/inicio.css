@@ -5,3 +5,43 @@
 .card:hover {
     transform: scale(1.05);
 }
+
+.card {
+    border: none;
+}
+
+.card-title {
+    font-size: 1.5rem;
+    color: #007bff;
+}
+
+.card-body {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px; 
+}
+
+.list-group-item {
+    font-size: 1.1rem;
+    padding: 15px 20px;
+}
+
+.badge {
+    font-size: 0.9rem;
+    padding: 5px 10px;
+    border-radius: 10px;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.shadow-sm {
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+}
+
+@media (max-width: 768px) {
+    .card {
+        margin: 15px;
+    }
+}

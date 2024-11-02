@@ -6,9 +6,16 @@
     <div class="form-group">{{ form.vehiculo|as_crispy_field }}</div>
     <div class="form-group">{{ form.fecha_y_hora|as_crispy_field }}</div>
     <div class="form-group">{{ form.motivo|as_crispy_field }}</div>
+    <div class="form-group">{{ form.ubicacion|as_crispy_field }}</div>
+
+    {% if es_supervisor_o_admin %}
+    <div class="form-group">{{ form.estado_cita|as_crispy_field }}</div>
+    {% endif %}
+
     <button type="submit" class="btn btn-primary">Registrar</button>
   </form>
 </div>
+
 <!-- Calendario -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
