@@ -1,5 +1,5 @@
 from django import forms
-from .models import Dueño, Vehiculo, Trabajador, Supervisor, Cita, Pago, Servicio, Proceso, Perfil, Cotizacion, DetalleCotizacion, Notificacion
+from .models import CustomUserManager, CustomUser, Perfil, Dueño, Vehiculo, Servicio, Administrador, Supervisor, Trabajador, Notificacion, Proceso, Pago, Cita, Cotizacion, DetalleCotizacion
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model

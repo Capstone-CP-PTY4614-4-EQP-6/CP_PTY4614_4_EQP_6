@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap4',
     'fcm_django',
+    'swapper',
 ]
 
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
@@ -101,6 +102,9 @@ AUTH_USER_MODEL = 'miapp.CustomUser'
 FCM_DJANGO_SETTINGS = {
     "FCM_SERVER_KEY": "AIzaSyAW7rGZXp6Vzn6NaYGlTx9WQEDZaCzbSL8",
 }
+
+SWAPPABLE_MODELS = {'fcm_django.FCMDevice': 'miapp.CustomFCMDevice',
+                    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

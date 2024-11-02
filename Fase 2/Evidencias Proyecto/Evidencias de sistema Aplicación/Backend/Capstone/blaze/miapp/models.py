@@ -9,7 +9,6 @@ from django.core.validators import RegexValidator
 from datetime import datetime
 from django.db.models import Sum
 from fcm_django.models import FCMDevice
-from fcm_django.api.rest_framework import FCMDevice
 
 
 import re
@@ -320,9 +319,8 @@ class Notificacion(models.Model):
     def __str__(self):
         return f"Notificación {self.id} - Estado: {self.estado} - Mensaje: {self.mensaje}"
 
-
-def __str__(self):
-    return f"Notificación {self.id} - Estado: {self.estado} - {self.fecha.strftime('%Y-%m-%d %H:%M')}"
+    def __str__(self):
+        return f"Notificación {self.id} - Estado: {self.estado} - {self.fecha.strftime('%Y-%m-%d %H:%M')}"
 
 
 class Proceso(models.Model):

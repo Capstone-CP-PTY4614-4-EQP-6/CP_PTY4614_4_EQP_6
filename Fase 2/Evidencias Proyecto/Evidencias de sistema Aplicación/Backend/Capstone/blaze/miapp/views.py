@@ -17,8 +17,8 @@ from rest_framework.response import Response
 from django import forms
 
 # Importaciones de la aplicación
-from .models import Dueño, Vehiculo, Trabajador, Supervisor, Administrador, Cita, Pago, Servicio, Proceso, Perfil, Cotizacion, DetalleCotizacion, CustomUser, Notificacion
-from .forms import DueñoForm, VehiculoForm, TrabajadorForm, SupervisorForm, AdministradorForm, CitaForm, ServicioForm, PagoForm, ProcesoForm, UserRegistrationForm, CotizacionForm, DetalleCotizacionForm, NotificacionForm, AdminCreationForm
+from .models import CustomUserManager, CustomUser, Perfil, Dueño, Vehiculo, Servicio, Administrador, Supervisor, Trabajador, Notificacion, Proceso, Pago, Cita, Cotizacion, DetalleCotizacion
+from .forms import AdminCreationForm, AdminTrabajadorForm, AdminSupervisorForm, UserRegistrationForm, DueñoForm, VehiculoForm, CitaForm, ServicioForm, PagoForm, ProcesoForm, NotificacionForm, CotizacionForm, DetalleCotizacionForm
 from .utils import enviar_notificacion, enviar_correo
 
 # Librerias
