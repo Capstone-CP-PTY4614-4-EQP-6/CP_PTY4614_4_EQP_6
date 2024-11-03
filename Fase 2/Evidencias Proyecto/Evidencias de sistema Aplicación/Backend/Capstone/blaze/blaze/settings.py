@@ -103,6 +103,13 @@ FCM_DJANGO_SETTINGS = {
     "FCM_SERVER_KEY": "AIzaSyAW7rGZXp6Vzn6NaYGlTx9WQEDZaCzbSL8",
 }
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.tu-proveedor-email.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'ig.pinares@duocuc.cl'
+EMAIL_HOST_PASSWORD = 'aspires15'
+
 SWAPPABLE_MODELS = {'fcm_django.FCMDevice': 'miapp.CustomFCMDevice',
                     }
 

@@ -29,7 +29,6 @@ def create_groups(sender, **kwargs):
         },
         'Administradores': {
             'models': [Trabajador, Dueño, Proceso, Pago, Cotizacion, Cita],
-            # Consultar, registrar, modificar y eliminar
             'actions': ['view', 'add', 'change', 'delete'],
         },
         'Trabajadores': {

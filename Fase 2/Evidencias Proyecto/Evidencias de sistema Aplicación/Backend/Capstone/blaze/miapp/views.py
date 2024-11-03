@@ -19,7 +19,7 @@ from django import forms
 # Importaciones de la aplicación
 from .models import CustomUserManager, CustomUser, Perfil, Dueño, Vehiculo, Servicio, Administrador, Supervisor, Trabajador, Notificacion, Proceso, Pago, Cita, Cotizacion, DetalleCotizacion
 from .forms import AdminCreationForm, AdminTrabajadorForm, AdminSupervisorForm, UserRegistrationForm, DueñoForm, VehiculoForm, CitaForm, ServicioForm, PagoForm, ProcesoForm, NotificacionForm, CotizacionForm, DetalleCotizacionForm
-from .utils import enviar_notificacion, enviar_correo
+from .utils import enviar_correo_confirmacion, confirmar_proceso
 
 # Librerias
 import pandas as pd
@@ -28,13 +28,14 @@ from openpyxl import Workbook
 
 # Administrador
 
-class SuperAdminRequiredMixin(UserPassesTestMixin):
-    def test_func(self):
-        return self.request.user.is_superadmin
+def superadmin_required(view_func):
+    decorated_view_func = user_passes_test(
+        lambda u: u.is_active and getattr(u, 'is_superadmin', False))(view_func)
+    return decorated_view_func
 
 
 @login_required
-@SuperAdminRequiredMixin
+@superadmin_required
 def create_admin(request):
     if request.method == 'POST':
         form = AdminCreationForm(request.POST)
@@ -138,9 +139,15 @@ def login_view(request):
             messages.success(request, f"Bienvenido {user.nombre}!")
 
             # Redirección según el rol del usuario
-            if user.perfil.rol == 'Admin':
+            if user.perfil.rol == 'Administrador':
                 return redirect('inicio')
             elif user.perfil.rol == 'Dueño':
+                return redirect('inicio')
+            elif user.perfil.rol == 'Supervisor':
+                return redirect('inicio')
+            elif user.perfil.rol == 'Clientes':
+                return redirect('inicio')
+            elif user.perfil.rol == 'Trabajador':
                 return redirect('inicio')
             else:
                 return redirect('inicio')
@@ -158,15 +165,13 @@ def crear_trabajador(request):
     if request.user.perfil.rol != 'Admin':
         messages.error(
             request, 'No tienes permiso para acceder a esta página')
-        return redirect('inicio')  # Redirigir a la vista de inicio
+        return redirect('inicio')
 
     if request.method == 'POST':
-        form = TrabajadorForm(request.POST)
+        form = AdminTrabajadorForm(request.POST)
         if form.is_valid():
             trabajador = form.save(commit=False)
-            # Crear usuario y asignar el perfil correspondiente
             email = form.cleaned_data['email']
-            # Asegúrate de tener este campo en tu formulario
             password = form.cleaned_data['password']
             user = CustomUser.objects.create_user(
                 email=email, password=password)
@@ -176,7 +181,7 @@ def crear_trabajador(request):
             messages.success(request, 'Trabajador creado con éxito')
             return redirect('inicio')
     else:
-        form = TrabajadorForm()
+        form = AdminTrabajadorForm()
     return render(request, 'trabajadores/crear_trabajador.html', {'form': form})
 
 
@@ -205,13 +210,13 @@ def editar_trabajador(request, id_trabajador):
     trabajador = get_object_or_404(Trabajador, id_trabajador=id_trabajador)
 
     if request.method == 'POST':
-        form = TrabajadorForm(request.POST, instance=trabajador)
+        form = AdminTrabajadorForm(request.POST, instance=trabajador)
         if form.is_valid():
             form.save()
             messages.success(request, 'Trabajador editado con éxito')
             return redirect('lista_trabajadores')
     else:
-        form = TrabajadorForm(instance=trabajador)
+        form = AdminTrabajadorForm(instance=trabajador)
 
     return render(request, 'trabajadores/editar_trabajador.html', {'form': form})
 
@@ -219,17 +224,18 @@ def editar_trabajador(request, id_trabajador):
 @login_required
 @user_passes_test(es_admin)
 def eliminar_trabajador(request, id_trabajador):
-    # Verifica que solo los administradores puedan acceder
     if request.user.perfil.rol != 'Admin':
-        messages.error(
-            request, 'No tienes permiso para acceder a esta página')
-        return redirect('inicio')  # Redirigir a la vista de inicio
+        messages.error(request, 'No tienes permiso para acceder a esta página')
+        return redirect('inicio')
 
     trabajador = get_object_or_404(Trabajador, id_trabajador=id_trabajador)
 
     if request.method == 'POST':
-        trabajador.delete()
-        messages.success(request, 'Trabajador eliminado con éxito')
+        try:
+            trabajador.delete()
+            messages.success(request, 'Trabajador eliminado con éxito')
+        except Exception as e:
+            messages.error(request, f'Error eliminando trabajador: {str(e)}')
         return redirect('lista_trabajadores')
 
     return render(request, 'trabajadores/eliminar_trabajador.html', {'trabajador': trabajador})
@@ -248,13 +254,12 @@ def listar_supervisores(request):
 @user_passes_test(es_admin)
 def crear_supervisor(request):
     if request.method == 'POST':
-        form = SupervisorForm(request.POST)
+        form = AdminSupervisorForm(request.POST)
         if form.is_valid():
             form.save()
-            # Redirige a la lista de supervisores
             return redirect('listar_supervisores')
     else:
-        form = SupervisorForm()
+        form = AdminSupervisorForm()
     return render(request, 'crear_supervisor.html', {'form': form})
 
 
@@ -263,12 +268,12 @@ def crear_supervisor(request):
 def editar_supervisor(request, supervisor_id):
     supervisor = get_object_or_404(Supervisor, id=supervisor_id)
     if request.method == 'POST':
-        form = SupervisorForm(request.POST, instance=supervisor)
+        form = AdminSupervisorForm(request.POST, instance=supervisor)
         if form.is_valid():
             form.save()
             return redirect('listar_supervisores')
     else:
-        form = SupervisorForm(instance=supervisor)
+        form = AdminSupervisorForm(instance=supervisor)
     return render(request, 'editar_supervisor.html', {'form': form, 'supervisor': supervisor})
 
 
@@ -277,12 +282,16 @@ def editar_supervisor(request, supervisor_id):
 def eliminar_supervisor(request, supervisor_id):
     supervisor = get_object_or_404(Supervisor, id=supervisor_id)
     if request.method == 'POST':
-        supervisor.delete()
+        try:
+            supervisor.delete()
+            messages.success(request, 'Supervisor eliminado con éxito')
+        except Exception as e:
+            messages.error(request, f'Error eliminando supervisor: {str(e)}')
         return redirect('listar_supervisores')
     return render(request, 'eliminar_supervisor.html', {'supervisor': supervisor})
 
-
 # Mi cuenta
+
 
 @login_required
 def mi_cuenta(request):
@@ -372,18 +381,15 @@ def registrar_dueño(request):
         return redirect('inicio')
 
     if request.method == 'POST':
-        # Pasar el usuario al formulario
         form = DueñoForm(request.POST, user=request.user)
         if form.is_valid():
             nuevo_dueño = form.save(commit=False)
             nuevo_dueño.user = request.user
             nuevo_dueño.save()
 
-            # Asignar grupo dueños al usuario
             grupo, created = Group.objects.get_or_create(name='dueños')
             request.user.groups.add(grupo)
 
-            # Crear o actualizar el perfil del usuario
             perfil, created = Perfil.objects.get_or_create(user=request.user)
             perfil.rol = 'Dueño'
             perfil.save()
@@ -417,13 +423,18 @@ def editar_dueño(request, id):
     return render(request, 'dueños/editar_dueño.html', {'form': form, 'dueño': dueño})
 
 
-@ login_required
-@ user_passes_test(es_admin)
+@login_required
+@user_passes_test(es_admin)
 def eliminar_dueño(request, dueño_id):
     dueño = get_object_or_404(Dueño, id=dueño_id)
-    dueño.delete()
-    messages.success(request, 'Dueño eliminado correctamente.')
-    return redirect('lista_dueños')
+    if request.method == 'POST':
+        try:
+            dueño.delete()
+            messages.success(request, 'Dueño eliminado correctamente.')
+        except Exception as e:
+            messages.error(request, f'Error eliminando dueño: {str(e)}')
+        return redirect('lista_dueños')
+    return render(request, 'dueños/eliminar_dueño.html', {'dueño': dueño})
 
 
 # Gestión de Vehículos
@@ -519,17 +530,8 @@ def lista_procesos(request):
 
 @ login_required
 @ user_passes_test(es_admin)
-# def registrar_proceso(request):
-# if request.method == 'POST':
-# form = ProcesoForm(request.POST)
-# if form.is_valid():
-# proceso = form.save(commit=False)
-# proceso.save()  # Guardar el proceso
-# messages.success(request, 'Proceso registrado correctamente')
-# return redirect('lista_procesos')
-# else:
-# form = ProcesoForm()
-# return render(request, 'procesos/registrar_proceso.html', {'form': form})
+@ login_required
+@ user_passes_test(es_admin)
 def registrar_proceso(request):
     if request.method == 'POST':
         proceso_form = ProcesoForm(request.POST)
@@ -538,35 +540,37 @@ def registrar_proceso(request):
         if proceso_form.is_valid() and notificacion_form.is_valid():
             proceso = proceso_form.save()
 
-            # Guardar la notificación
             notificacion = notificacion_form.save(commit=False)
             notificacion.proceso = proceso
-            # Cambia esto por el token real si es necesario
-            notificacion.dispositivo_token = 'token_del_dispositivo'
             notificacion.save()
 
-            # Verificar si el proceso está completado
+            # Verificar si el proceso esta completado
             if proceso.estado_proceso == 'completado':
-                # Obtener todos los usuarios asociados al proceso
-                trabajadores = proceso.trabajador.all()  # Ajusta esto según tu relación
-            for trabajador in trabajadores:
-                destinatario = trabajador.email
-                mensaje = f"El proceso '{
-                    proceso.descripcion}' ha sido completado."
-                enviar_correo(destinatario, mensaje)
+                dueño = proceso.vehiculo.dueño
+                dueño_email = dueño.email
+                nombre_dueño = dueño.nombre
+                detalles_proceso = f"ID del proceso: {
+                    proceso.id}, Descripción: {proceso.descripcion}"
 
-            return redirect('nombre_de_la_vista_donde_redirigir')
+                # Envia el correo de confirmación
+                try:
+                    enviar_correo_confirmacion(
+                        dueño_email, nombre_dueño, detalles_proceso)
+                except Exception as e:
+                    print(f"Error al enviar el correo de confirmación: {e}")
+
+            return redirect('inicio')
     else:
         proceso_form = ProcesoForm()
         notificacion_form = NotificacionForm()
 
-    return render(request, 'tu_template.html', {
+    return render(request, 'procesos/registrar_proceso.html', {
         'proceso_form': proceso_form,
         'notificacion_form': notificacion_form,
     })
 
-
 # Editar proceso de reparacion
+
 
 @ login_required
 @ user_passes_test(es_admin)
@@ -617,10 +621,10 @@ def registrar_cita(request):
     if request.method == 'POST':
         form = CitaForm(request.POST)
         if form.is_valid():
-            cita = form.save(commit=False)  # No guardes inmediatamente
+            cita = form.save(commit=False)
             if not es_supervisor_o_admin:
-                cita.estado_cita = 'pendiente'  # Asignar estado por defecto
-            cita.save()  # Ahora guarda la cita
+                cita.estado_cita = 'pendiente'
+            cita.save()
             messages.success(request, 'Cita registrada correctamente.')
             return redirect('lista_citas')
         else:
@@ -646,16 +650,13 @@ def editar_cita(request, pk):
     if request.method == 'POST':
         form = CitaForm(request.POST, instance=cita)
         if form.is_valid():
-            # Restricción para que solo el admin y supervisor pueda modificar el estado
             if not request.user.groups.filter(name__in=['Administrador', 'Supervisor']).exists():
-                # Mantiene el estado actual si no es admin/supervisor
                 form.cleaned_data['estado_cita'] = cita.estado_cita
             form.save()
             messages.success(request, 'Cita actualizada correctamente.')
             return redirect('lista_citas')
     else:
         form = CitaForm(instance=cita)
-        # Oculta el campo 'estado_cita' para usuarios sin permisos
         if not request.user.groups.filter(name__in=['Administrador', 'Supervisor']).exists():
             form.fields['estado_cita'].widget = forms.HiddenInput()
 
@@ -684,7 +685,6 @@ def registrar_pago(request):
         form = PagoForm(request.POST)
         if form.is_valid():
             pago = form.save(commit=False)
-            # Asignar el proceso en lugar de reparación
             pago.proceso = form.cleaned_data['proceso']
             pago.save()
             messages.success(request, 'Pago registrado correctamente.')
@@ -782,7 +782,7 @@ def exportar_datos(request):
 @ login_required
 @ user_passes_test(es_admin)
 def mostrar_procesos(request):
-    procesos = Proceso.objects.all()  # Obtener todos los procesos
+    procesos = Proceso.objects.all()
     return render(request, 'exportar_datos.html', {'procesos': procesos})
 
 
@@ -806,7 +806,6 @@ def dashboard(request):
     ordenes_pendientes = Proceso.objects.filter(
         estado_proceso='pendiente').count()
 
-    # Imprimir en consola para depuración
     print("Cotizaciones pendientes:", cotizaciones_pendientes)
     print("Órdenes activas:", ordenes_activas)
     print("Órdenes pendientes:", ordenes_pendientes)

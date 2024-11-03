@@ -43,7 +43,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
-    email = models.EmailField(unique=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['nombre', 'apellido']
@@ -90,6 +89,8 @@ def asignar_grupo_por_rol(sender, instance, created, **kwargs):
             group = Group.objects.get(name='Trabajadores')
         elif instance.rol == 'supervisor':
             group = Group.objects.get(name='Supervisores')
+        elif instance.rol == 'dueño':
+            group = Group.objects.get(name='Dueños')
 
         if group:
             instance.user.groups.add(group)
@@ -128,7 +129,7 @@ class Dueño(models.Model):
     telefono = models.CharField(max_length=15)
     direccion = models.TextField()
     perfil = models.ForeignKey(
-        Perfil, on_delete=models.CASCADE, related_name='dueño')
+        Perfil, on_delete=models.CASCADE, related_name='dueño', null=True)
     rol = models.CharField(max_length=50, null=True, blank=True)
 
     def __str__(self):
@@ -211,9 +212,6 @@ class Administrador(models.Model):
         ('suspendido', 'Suspendido'),
     ]
     ASIGNACION_OPCIONES = [
-        ('mecanico', 'Mecánico'),
-        ('pintor', 'Pintor'),
-        ('electrico', 'Eléctrico'),
         ('jefe_taller', 'Jefe de Taller'),
     ]
     disponibilidad = models.CharField(
@@ -246,10 +244,7 @@ class Supervisor(models.Model):
         ('suspendido', 'Suspendido'),
     ]
     ASIGNACION_OPCIONES = [
-        ('mecanico', 'Mecánico'),
-        ('pintor', 'Pintor'),
-        ('electrico', 'Eléctrico'),
-        ('jefe_taller', 'Jefe de Taller'),
+        ('supervisor', 'Supervisor'),
     ]
     disponibilidad = models.CharField(
         max_length=50, choices=DISPONIBILIDAD_OPCIONES)
@@ -317,10 +312,7 @@ class Notificacion(models.Model):
         max_length=255, default='', null=False)
 
     def __str__(self):
-        return f"Notificación {self.id} - Estado: {self.estado} - Mensaje: {self.mensaje}"
-
-    def __str__(self):
-        return f"Notificación {self.id} - Estado: {self.estado} - {self.fecha.strftime('%Y-%m-%d %H:%M')}"
+        return f"Notificación {self.id} - Estado: {self.estado} - {self.fecha_envio.strftime('%Y-%m-%d %H:%M')}"
 
 
 class Proceso(models.Model):
@@ -356,7 +348,7 @@ class Proceso(models.Model):
     vehiculo = models.ForeignKey(
         'Vehiculo', on_delete=models.CASCADE, default=1)
     notificaciones = models.ManyToManyField(
-        Notificacion, related_name='procesos')
+        Notificacion, related_name='procesos', blank=True)
 
     def __str__(self):
         return f"{self.fase_proceso} - {self.estado_proceso}"
