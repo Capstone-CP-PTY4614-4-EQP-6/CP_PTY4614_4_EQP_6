@@ -1,14 +1,14 @@
 {% extends 'base.html' %} {% block content %}
 <div class="container mt-5">
-  <h2>Editar Supervisores</h2>
+  <h2>Editar Trabajadores</h2>
 
   <form method="post">
     {% csrf_token %} {{ form.as_p }}
 
     <button type="submit" class="btn btn-success">
-      Actualizar supervisores
+      Actualizar trabajadores
     </button>
-    <a href="{% url 'lista_supervisores' %}" class="btn btn-secondary"
+    <a href="{% url 'lista_trabajadores' %}" class="btn btn-secondary"
       >Cancelar</a
     >
   </form>

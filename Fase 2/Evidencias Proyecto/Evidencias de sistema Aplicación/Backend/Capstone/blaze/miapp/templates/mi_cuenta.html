@@ -12,7 +12,7 @@
   </p>
   {% endif %}
 
-  <!-- Vehiculos -->
+  <!-- Vehículos -->
   <h3>Tus Vehículos:</h3>
   <ul class="list-group mb-4">
     {% if vehiculos %} {% for vehiculo in vehiculos %}
@@ -28,6 +28,7 @@
   </ul>
 
   <!-- Procesos -->
+  {% if user.perfil.rol == 'trabajador' or user.perfil.rol == 'administrador' %}
   <h3>Tus Procesos:</h3>
   <ul class="list-group mb-4">
     {% if procesos %} {% for proceso in procesos %}
@@ -41,8 +42,10 @@
     <li class="list-group-item">No tienes procesos en curso.</li>
     {% endif %}
   </ul>
+  {% endif %}
 
   <!-- Pagos -->
+  {% if user.perfil.rol == 'dueño' or user.perfil.rol == 'administrador' %}
   <h3>Tus Pagos:</h3>
   <ul class="list-group mb-4">
     {% if pagos %} {% for pago in pagos %}
@@ -55,8 +58,10 @@
     <li class="list-group-item">No tienes pagos registrados.</li>
     {% endif %}
   </ul>
+  {% endif %}
 
   <!-- Citas -->
+  {% if user.perfil.rol == 'dueño' or user.perfil.rol == 'administrador' %}
   <h3>Tus Citas:</h3>
   <ul class="list-group mb-4">
     {% if citas %} {% for cita in citas %}
@@ -69,8 +74,10 @@
     <li class="list-group-item">No tienes citas registradas.</li>
     {% endif %}
   </ul>
+  {% endif %}
 
   <!-- Cotizaciones -->
+  {% if user.perfil.rol == 'dueño' or user.perfil.rol == 'administrador' %}
   <h3>Tus Cotizaciones:</h3>
   <ul class="list-group mb-4">
     {% if cotizaciones %} {% for cotizacion in cotizaciones %}
@@ -83,5 +90,6 @@
     <li class="list-group-item">No tienes cotizaciones registradas.</li>
     {% endif %}
   </ul>
+  {% endif %}
 </div>
 {% endblock %}

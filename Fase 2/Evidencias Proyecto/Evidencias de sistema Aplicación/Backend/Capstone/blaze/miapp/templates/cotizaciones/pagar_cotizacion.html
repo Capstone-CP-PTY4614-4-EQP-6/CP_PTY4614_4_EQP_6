@@ -1,0 +1,12 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container mt-5">
+  <h2>Pagar Cotización</h2>
+  <p>Vehículo: {{ cotizacion.vehiculo }}</p>
+  <p>Total Estimado: {{ cotizacion.total_estimado }}</p>
+
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit">Pagar</button>
+  </form>
+  {% endblock %}
+</div>

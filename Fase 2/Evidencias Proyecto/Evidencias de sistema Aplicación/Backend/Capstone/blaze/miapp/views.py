@@ -1,4 +1,7 @@
 # Importaciones de Django
+from .models import Perfil, Dueño, Vehiculo, Proceso, Pago, Cita, Cotizacion
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, HttpResponseForbidden
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -15,11 +18,18 @@ from fcm_django.api.rest_framework import FCMDevice
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django import forms
+from django.core.mail import send_mail
+from firebase_admin import auth
+from django.contrib import messages
+from django.shortcuts import render
+from transbank.sdk.webpay import Webpay
+from django.http import JsonResponse
 
 # Importaciones de la aplicación
 from .models import CustomUserManager, CustomUser, Perfil, Dueño, Vehiculo, Servicio, Administrador, Supervisor, Trabajador, Notificacion, Proceso, Pago, Cita, Cotizacion, DetalleCotizacion
 from .forms import AdminCreationForm, AdminTrabajadorForm, AdminSupervisorForm, UserRegistrationForm, DueñoForm, VehiculoForm, CitaForm, ServicioForm, PagoForm, ProcesoForm, NotificacionForm, CotizacionForm, DetalleCotizacionForm
 from .utils import enviar_correo_confirmacion, confirmar_proceso
+from .firebase import reset_password
 
 # Librerias
 import pandas as pd
@@ -27,6 +37,7 @@ from openpyxl import Workbook
 
 
 # Administrador
+
 
 def superadmin_required(view_func):
     decorated_view_func = user_passes_test(
@@ -107,13 +118,13 @@ def inicio(request):
     is_cliente = request.user.groups.filter(
         name="Clientes").exists() if request.user.is_authenticated else False
     is_dueño = request.user.groups.filter(
-        name="Dueño").exists() if request.user.is_authenticated else False
+        name="Dueños").exists() if request.user.is_authenticated else False
     is_supervisor = request.user.groups.filter(
-        name="Supervisor").exists() if request.user.is_authenticated else False
+        name="Supervisores").exists() if request.user.is_authenticated else False
     is_administrador = request.user.groups.filter(
-        name="Administrador").exists() if request.user.is_authenticated else False
+        name="Administradores").exists() if request.user.is_authenticated else False
     is_trabajador = request.user.groups.filter(
-        name="Trabajador").exists() if request.user.is_authenticated else False
+        name="Trabajadores").exists() if request.user.is_authenticated else False
 
     context = {
         'is_cliente': is_cliente,
@@ -156,7 +167,24 @@ def login_view(request):
     return render(request, 'login.html')
 
 
+# Restabler contraseña
+
+def reset_password(request):
+    if request.method == "POST":
+        email = request.POST.get("email")
+        try:
+            auth.send_password_reset_email(email)
+            messages.success(
+                request, "Se ha enviado un correo para restablecer la contraseña.")
+            return redirect("login")
+        except Exception as e:
+            messages.error(request, str(e))
+
+    return render(request, "reset_password.html")
+
+
 # Vista para la creacion de trabajadores (solo accesible por administradores)
+
 
 @ login_required
 @ perfil_requerido
@@ -240,14 +268,32 @@ def eliminar_trabajador(request, id_trabajador):
 
     return render(request, 'trabajadores/eliminar_trabajador.html', {'trabajador': trabajador})
 
+
+@login_required
+@user_passes_test(es_admin)
+def bloquear_trabajador(request, trabajador_id):
+    trabajador = get_object_or_404(Trabajador, id=trabajador_id)
+    trabajador.bloqueado = True
+    trabajador.save()
+    return redirect('lista_trabajadores')
+
+
+@login_required
+@user_passes_test(es_admin)
+def desbloquear_trabajador(request, trabajador_id):
+    trabajador = get_object_or_404(Trabajador, id=trabajador_id)
+    trabajador.bloqueado = False
+    trabajador.save()
+    return redirect('lista_trabajadores')
+
 # Vista para gestionar los supervisores (solo accesible por administradores)
 
 
 @login_required
 @user_passes_test(es_admin)
-def listar_supervisores(request):
+def lista_supervisores(request):
     supervisores = Supervisor.objects.all()
-    return render(request, 'listar_supervisores.html', {'supervisores': supervisores})
+    return render(request, 'lista_supervisores.html', {'supervisores': supervisores})
 
 
 @login_required
@@ -257,7 +303,7 @@ def crear_supervisor(request):
         form = AdminSupervisorForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('listar_supervisores')
+            return redirect('lista_supervisores')
     else:
         form = AdminSupervisorForm()
     return render(request, 'crear_supervisor.html', {'form': form})
@@ -271,7 +317,7 @@ def editar_supervisor(request, supervisor_id):
         form = AdminSupervisorForm(request.POST, instance=supervisor)
         if form.is_valid():
             form.save()
-            return redirect('listar_supervisores')
+            return redirect('lista_supervisores')
     else:
         form = AdminSupervisorForm(instance=supervisor)
     return render(request, 'editar_supervisor.html', {'form': form, 'supervisor': supervisor})
@@ -287,8 +333,26 @@ def eliminar_supervisor(request, supervisor_id):
             messages.success(request, 'Supervisor eliminado con éxito')
         except Exception as e:
             messages.error(request, f'Error eliminando supervisor: {str(e)}')
-        return redirect('listar_supervisores')
+        return redirect('lista_supervisores')
     return render(request, 'eliminar_supervisor.html', {'supervisor': supervisor})
+
+
+@login_required
+@user_passes_test(es_admin)
+def bloquear_supervisor(request, supervisor_id):
+    supervisor = get_object_or_404(Supervisor, id=supervisor_id)
+    supervisor.bloqueado = True
+    supervisor.save()
+    return redirect('lista_supervisores')
+
+
+@login_required
+@user_passes_test(es_admin)
+def desbloquear_supervisor(request, supervisor_id):
+    supervisor = get_object_or_404(Supervisor, id=supervisor_id)
+    supervisor.bloqueado = False
+    supervisor.save()
+    return redirect('lista_supervisores')
 
 # Mi cuenta
 
@@ -296,11 +360,12 @@ def eliminar_supervisor(request, supervisor_id):
 @login_required
 def mi_cuenta(request):
     user = request.user
-
     perfil = None
     vehiculos = []
     procesos = []
     pagos = []
+    citas = []
+    cotizaciones = []
 
     try:
         perfil = user.perfil
@@ -313,6 +378,8 @@ def mi_cuenta(request):
             vehiculos = Vehiculo.objects.filter(dueño=dueño)
             procesos = Proceso.objects.filter(vehiculo__dueño=dueño)
             pagos = Pago.objects.filter(reparacion__vehiculo__dueño=dueño)
+            citas = Cita.objects.filter(vehiculo__dueño=dueño)
+            cotizaciones = Cotizacion.objects.filter(vehiculo__dueño=dueño)
         except Dueño.DoesNotExist:
             dueño = None
         except Exception as e:
@@ -320,6 +387,16 @@ def mi_cuenta(request):
 
         if perfil.rol == 'trabajador':
             procesos = Proceso.objects.filter(trabajador=perfil)
+
+        elif perfil.rol == 'supervisor':
+            procesos = Proceso.objects.filter(supervisor=perfil)
+
+        elif perfil.rol == 'administrador':
+            procesos = Proceso.objects.filter(vehiculo__dueño=dueño)
+            vehiculos = Vehiculo.objects.filter(dueño=dueño)
+            pagos = Pago.objects.filter(reparacion__vehiculo__dueño=dueño)
+            citas = Cita.objects.filter(vehiculo__dueño=dueño)
+            cotizaciones = Cotizacion.objects.filter(vehiculo__dueño=dueño)
 
     if not procesos:
         procesos = Proceso.objects.all()
@@ -330,6 +407,8 @@ def mi_cuenta(request):
         'vehiculos': vehiculos,
         'procesos': procesos,
         'pagos': pagos,
+        'citas': citas,
+        'cotizaciones': cotizaciones,
     }
 
     return render(request, 'mi_cuenta.html', context)
@@ -346,8 +425,6 @@ def registrar_usuario(request):
 
             user = CustomUser.objects.create_user(
                 email=email,
-                nombre=nombre,
-                apellido=apellido,
                 password=password
             )
 
@@ -437,7 +514,25 @@ def eliminar_dueño(request, dueño_id):
     return render(request, 'dueños/eliminar_dueño.html', {'dueño': dueño})
 
 
+@login_required
+@user_passes_test(es_admin)
+def bloquear_dueño(request, dueño_id):
+    dueño = get_object_or_404(Dueño, id=dueño_id)
+    dueño.bloqueado = True
+    dueño.save()
+    return redirect('lista_dueños')
+
+
+@login_required
+@user_passes_test(es_admin)
+def desbloquear_dueño(request, dueño_id):
+    dueño = get_object_or_404(Dueño, id=dueño_id)
+    dueño.bloqueado = False
+    dueño.save()
+    return redirect('lista_dueños')
+
 # Gestión de Vehículos
+
 
 @login_required
 def lista_vehiculos(request):
@@ -730,6 +825,7 @@ def registrar_cotizacion(request):
 
 
 @ login_required
+@ user_passes_test(es_admin)
 def editar_cotizacion(request, pk):
     cotizacion = get_object_or_404(Cotizacion, pk=pk)
     if request.method == 'POST':
@@ -752,7 +848,61 @@ def eliminar_cotizacion(request, pk):
     return redirect('lista_cotizaciones')
 
 
+@login_required
+def pagar_cotizacion(request, pk):
+    cotizacion = get_object_or_404(Cotizacion, pk=pk)
+
+    if request.method == 'POST':
+        # Verifica que la cotización sea válida para el pago
+        if cotizacion.estado == 'Aceptada':
+            webpay = Webpay()
+            response = webpay.create(
+                buy_order=str(cotizacion.id),
+                session_id=str(request.session.session_key),
+                amount=cotizacion.total_estimado,
+                return_url='http://tu_dominio.com/return_url/',  # Cambia por tu URL de retorno
+                final_url='http://tu_dominio.com/final_url/'     # Cambia por tu URL final
+            )
+
+            # Guardar el pago en la base de datos
+            pago = Pago(monto=cotizacion.total_estimado, metodo_pago='tarjeta',
+                        estado_pago='pendiente', cotizacion=cotizacion)
+            pago.save()
+
+            # Redirige al usuario a la URL de pago de Webpay
+            return redirect(response['url'])
+        else:
+            messages.error(
+                request, 'La cotización no está en un estado válido para realizar el pago.')
+    return render(request, 'cotizaciones/pagar_cotizacion.html', {'cotizacion': cotizacion})
+
+
+def return_url(request):
+    # Aquí puedes procesar la respuesta de Webpay después de que el usuario complete el pago
+    return JsonResponse({'message': 'Gracias por tu pago'})
+
+
+def final_url(request):
+    buy_order = request.GET.get('buy_order')
+    webpay = Webpay()
+    response = webpay.commit(buy_order)
+
+    if response['status'] == 'AUTHORIZED':
+        # Actualizar el pago y la cotización como completados
+        pago = Pago.objects.get(cotizacion__id=buy_order)
+        pago.estado_pago = 'completado'
+        pago.save()
+
+        cotizacion = Cotizacion.objects.get(id=buy_order)
+        cotizacion.estado = 'Pagado'
+        cotizacion.save()
+
+        return JsonResponse({'message': 'Pago exitoso'})
+    else:
+        return JsonResponse({'message': 'Error en el pago'})
+
 # Exportar a Excel
+
 
 @ login_required
 @ user_passes_test(es_admin)

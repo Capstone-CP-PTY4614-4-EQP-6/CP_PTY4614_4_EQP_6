@@ -355,12 +355,26 @@ class Proceso(models.Model):
 
 
 class Pago(models.Model):
+    METODO_PAGO_CHOICES = [
+        ('efectivo', 'Efectivo'),
+        ('tarjeta', 'Tarjeta de Crédito'),
+        ('transferencia', 'Transferencia Bancaria'),
+    ]
+
+    ESTADO_PAGO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('completado', 'Completado'),
+        ('cancelado', 'Cancelado'),
+    ]
+
     id_pago = models.AutoField(primary_key=True)
-    monto = models.DecimalField(max_digits=10, decimal_places=2)
-    metodo_pago = models.CharField(max_length=50)
+    monto = models.IntegerField()
+    metodo_pago = models.CharField(max_length=50, choices=METODO_PAGO_CHOICES)
     fecha_pago = models.DateTimeField(auto_now_add=True)
-    estado_pago = models.CharField(max_length=100)
+    estado_pago = models.CharField(max_length=100, choices=ESTADO_PAGO_CHOICES)
     proceso = models.ForeignKey('Proceso', on_delete=models.CASCADE)
+    cotizacion = models.ForeignKey(
+        'Cotizacion', on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return f"Pago {self.id} - {self.estado_pago} - {self.fecha_pago.strftime('%Y-%m-%d')}"

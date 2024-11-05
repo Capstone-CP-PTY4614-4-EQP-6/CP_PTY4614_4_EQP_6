@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path, os
+from decouple import config
+from transbank.sdk.configuration import Configuration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -97,6 +99,11 @@ DATABASES = {
 
 AUTH_USER_MODEL = 'miapp.CustomUser'
 
+# WebPay
+
+Configuration.configure('YOUR_API_KEY', 'YOUR_API_SECRET',
+                        'http://tusitio.com/return_url/', 'http://tusitio.com/final_url/')
+
 # Firebase
 
 FCM_DJANGO_SETTINGS = {
@@ -104,16 +111,16 @@ FCM_DJANGO_SETTINGS = {
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.tu-proveedor-email.com'
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'ig.pinares@duocuc.cl'
-EMAIL_HOST_PASSWORD = 'aspires15'
+EMAIL_HOST_USER = 'nassopinares@gmail.com'
+EMAIL_HOST_PASSWORD = 'Segunda2_carril'
 
 SWAPPABLE_MODELS = {'fcm_django.FCMDevice': 'miapp.CustomFCMDevice',
                     }
 
-# Password validation
+# Password validati
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [

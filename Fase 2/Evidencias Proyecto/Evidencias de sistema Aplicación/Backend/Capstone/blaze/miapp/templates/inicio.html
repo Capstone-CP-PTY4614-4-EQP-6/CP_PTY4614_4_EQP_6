@@ -3,6 +3,17 @@
 <div class="container mt-5 text-center">
   <h1>Bienvenido al Taller Automotriz Blaze</h1>
   <p>Gestione sus vehículos y servicios de manera eficiente.</p>
+  <p>
+    <!-- Sección para Clientes y usuarios -->
+    {% if is_dueño %}Dueño {% endif %}
+    <!-- Sección para Clientes y usuarios -->
+    {% if is_administrador %}Administrador {% endif %}
+    <!-- Sección para Clientes y usuarios -->
+    {% if is_trabajador %}Trabajador {% endif %}
+    <!-- Sección para Clientes y usuarios -->
+    {% if is_supervisor %}Supervisor {% endif %}
+    <!-- Sección para Clientes y usuarios -->
+  </p>
 
   <div class="row">
     <!-- Sección para Clientes y usuarios -->
@@ -58,7 +69,62 @@
       </div>
     </div>
 
-    <!-- Seccion para Dueño -->
+    <!--<div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Vehículos</h5>
+          <a href="{% url 'lista_vehiculos' %}" class="btn btn-primary"
+            >Consultar Vehículos</a
+          >
+          <a href="{% url 'registro_vehiculo' %}" class="btn btn-success mt-2"
+            >Registrar Vehículo</a
+          >
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Citas</h5>
+          <a href="{% url 'lista_citas' %}" class="btn btn-primary"
+            >Consultar Citas</a
+          >
+          <a href="{% url 'registro_cita' %}" class="btn btn-success mt-2"
+            >Registrar Cita</a
+          >
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Cotizaciones</h5>
+          <a href="{% url 'lista_cotizaciones' %}" class="btn btn-primary"
+            >Consultar Cotizaciones</a
+          >
+          <a
+            href="{% url 'registrar_cotizacion' %}"
+            class="btn btn-success mt-2"
+            >Registrar Cotización</a
+          >
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Pagos</h5>
+          <a href="{% url 'lista_pagos' %}" class="btn btn-primary"
+            >Consultar Pagos</a
+          >
+          <a href="{% url 'registro_pago' %}" class="btn btn-success mt-2"
+            >Registrar Pago</a
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección para Dueños -->
     {% if is_dueño %}
     <div class="col-md-4">
       <div class="card mb-4">
@@ -67,12 +133,56 @@
           <a href="{% url 'lista_vehiculos' %}" class="btn btn-primary"
             >Consultar Vehículos</a
           >
+          <a href="{% url 'registro_vehiculo' %}" class="btn btn-success mt-2"
+            >Registrar Vehículo</a
+          >
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Citas</h5>
+          <a href="{% url 'lista_citas' %}" class="btn btn-primary"
+            >Consultar Citas</a
+          >
+          <a href="{% url 'registro_cita' %}" class="btn btn-success mt-2"
+            >Registrar Cita</a
+          >
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Cotizaciones</h5>
+          <a href="{% url 'lista_cotizaciones' %}" class="btn btn-primary"
+            >Consultar Cotizaciones</a
+          >
+          <a
+            href="{% url 'registrar_cotizacion' %}"
+            class="btn btn-success mt-2"
+            >Registrar Cotización</a
+          >
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Pagos</h5>
+          <a href="{% url 'lista_pagos' %}" class="btn btn-primary"
+            >Consultar Pagos</a
+          >
+          <a href="{% url 'registro_pago' %}" class="btn btn-success mt-2"
+            >Registrar Pago</a
+          >
         </div>
       </div>
     </div>
     {% endif %}
 
-    <!-- Seccion para Administrador -->
+    <!-- Sección para Administradores -->
     {% if is_administrador %}
     <div class="col-md-4">
       <div class="card mb-4">
@@ -81,7 +191,7 @@
           <a href="{% url 'lista_trabajadores' %}" class="btn btn-primary"
             >Consultar Trabajadores</a
           >
-          <a href="{% url 'crear_trabajador' %}" class="btn btn-secondary mt-2"
+          <a href="{% url 'crear_trabajador' %}" class="btn btn-success mt-2"
             >Crear Trabajador</a
           >
         </div>
@@ -89,7 +199,7 @@
     </div>
     {% endif %}
 
-    <!-- Seccion para Trabajador -->
+    <!-- Sección para Trabajadores -->
     {% if is_trabajador %}
     <div class="col-md-4">
       <div class="card mb-4">
@@ -103,7 +213,7 @@
     </div>
     {% endif %}
 
-    <!-- Seccion para Supervisor -->
+    <!-- Sección para Supervisores -->
     {% if is_supervisor %}
     <div class="col-md-4">
       <div class="card mb-4">
@@ -112,7 +222,7 @@
           <a href="{% url 'lista_procesos' %}" class="btn btn-primary"
             >Consultar Procesos</a
           >
-          <a href="{% url 'crear_supervisor' %}" class="btn btn-secondary mt-2"
+          <a href="{% url 'crear_supervisor' %}" class="btn btn-success mt-2"
             >Crear Supervisor</a
           >
         </div>

@@ -50,6 +50,19 @@
           >
             Eliminar
           </a>
+          {% if trabajador.bloqueado %}
+          <a
+            href="{% url 'desbloquear_trabajador' trabajador.id_trabajador %}"
+            class="btn btn-success btn-sm"
+            >Desbloquear</a
+          >
+          {% else %}
+          <a
+            href="{% url 'bloquear_trabajador' trabajador.id_trabajador %}"
+            class="btn btn-secondary btn-sm"
+            >Bloquear</a
+          >
+          {% endif %}
         </td>
       </tr>
       {% empty %}

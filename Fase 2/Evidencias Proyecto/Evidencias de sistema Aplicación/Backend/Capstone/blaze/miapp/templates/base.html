@@ -41,27 +41,45 @@
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav">
-            {% if user.is_authenticated %} {% if user.perfil.rol == 'dueño' %}
+          <ul class="navbar-nav me-auto">
+            {% if user.is_authenticated %} {% if is_dueño %}
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'mi_cuenta' %}">Mi Cuenta</a>
-            </li>
-            {% endif %} {% if user.perfil.rol == 'trabajador' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'gestionar_procesos' %}"
-                >Gestión de Procesos</a
+              <a class="nav-link" href="{% url 'gestionar_vehiculos' %}"
+                >Gestionar Vehículos</a
               >
             </li>
-            {% endif %} {% if user.perfil.rol == 'administrador' %}
+            {% endif %} {% if is_administrador %}
             <li class="nav-item">
               <a class="nav-link" href="{% url 'gestionar_usuarios' %}"
-                >Gestión de Usuarios</a
+                >Gestionar Usuarios</a
+              >
+            </li>
+            {% endif %} {% if is_trabajador %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'gestionar_tareas' %}"
+                >Gestionar Tareas</a
+              >
+            </li>
+            {% endif %} {% if is_supervisor %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'gestionar_informes' %}"
+                >Gestionar Informes</a
               >
             </li>
             {% endif %}
+
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'reset_password' %}"
+                >Recuperar mi contraseña</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'mi_cuenta' %}">Mi cuenta</a>
+            </li>
+
             <!-- Formulario de Cerrar Sesión -->
             <li class="nav-item">
-              <form method="POST" action="{% url 'logout' %}">
+              <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
                 <button
                   type="submit"
@@ -84,11 +102,6 @@
                 Acciones
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
-                <li>
-                  <a class="dropdown-item" href="{% url 'mi_cuenta' %}"
-                    >Mi Cuenta</a
-                  >
-                </li>
                 <li>
                   <a class="dropdown-item" href="{% url 'registrar_usuario' %}"
                     >Registrar</a

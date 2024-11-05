@@ -37,7 +37,11 @@
         </div>
         <button type="submit">Iniciar Sesión</button>
       </form>
-
+      <p>
+        ¿Olvidaste tu contraseña?
+        <a href="{% url 'reset_password' %}">Recupérala aquí</a>.
+      </p>
+      <p></p>
       <p>
         ¿No tienes cuenta?
         <a href="{% url 'registrar_usuario' %}">Regístrate aquí</a>.

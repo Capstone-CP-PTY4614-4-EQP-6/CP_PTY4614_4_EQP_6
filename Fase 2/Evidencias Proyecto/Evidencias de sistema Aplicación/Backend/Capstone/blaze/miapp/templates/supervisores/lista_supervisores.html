@@ -43,6 +43,19 @@
             onclick="return confirm('¿Estás seguro de que deseas eliminar a {{ supervisor.nombre }} {{ supervisor.apellido }}?');"
             >Eliminar</a
           >
+          {% if supervisor.bloqueado %}
+          <a
+            href="{% url 'desbloquear_supervisor' supervisor.id %}"
+            class="btn btn-success btn-sm"
+            >Desbloquear</a
+          >
+          {% else %}
+          <a
+            href="{% url 'bloquear_supervisor' supervisor.id %}"
+            class="btn btn-secondary btn-sm"
+            >Bloquear</a
+          >
+          {% endif %}
         </td>
       </tr>
       {% empty %}

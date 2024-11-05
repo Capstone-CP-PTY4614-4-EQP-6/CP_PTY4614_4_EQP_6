@@ -30,6 +30,18 @@ urlpatterns = [
     path('mi-cuenta/', views.mi_cuenta, name='mi_cuenta'),
     path('registrar-usuario/', views.registrar_usuario, name='registrar_usuario'),
 
+    path('reset-password/', views.reset_password, name='reset_password'),
+
+    # Recuperacion de contraseña
+    path('password_reset/', auth_views.PasswordResetView.as_view(),
+         name='password_reset'),
+    path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(),
+         name='password_reset_done'),
+    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(),
+         name='password_reset_confirm'),
+    path('reset/done/', auth_views.PasswordResetCompleteView.as_view(),
+         name='password_reset_complete'),
+
     # Gestion de vehiculos
     path('vehiculos/registrar/', views.registrar_vehiculo,
          name='registro_vehiculo'),
@@ -45,6 +57,9 @@ urlpatterns = [
     path('dueños/editar/<int:id>/', views.editar_dueño, name='editar_dueño'),
     path('dueños/eliminar/<int:dueño_id>/',
          views.eliminar_dueño, name='eliminar_dueño'),
+    path('dueños/bloquear/<int:id>/', views.bloquear_dueño, name='bloquear_dueño'),
+    path('dueños/desbloquear/<int:id>/',
+         views.desbloquear_dueño, name='desbloquear_dueño'),
 
     # Gestion de trabajadores
     path('trabajadores/', views.lista_trabajadores, name='lista_trabajadores'),
@@ -53,14 +68,22 @@ urlpatterns = [
          views.editar_trabajador, name='editar_trabajador'),
     path('trabajadores/eliminar/<int:id_trabajador>/',
          views.eliminar_trabajador, name='eliminar_trabajador'),
+    path('trabajadores/bloquear/<int:id>/',
+         views.bloquear_trabajador, name='bloquear_trabajador'),
+    path('trabajadores/desbloquear/<int:id>/',
+         views.desbloquear_trabajador, name='desbloquear_trabajador'),
 
     # Gestion de supervisores
-    path('supervisores/', views.listar_supervisores, name='listar_supervisores'),
+    path('supervisores/', views.lista_supervisores, name='listar_supervisores'),
     path('supervisores/crear/', views.crear_supervisor, name='crear_supervisor'),
     path('supervisores/editar/<int:supervisor_id>/',
          views.editar_supervisor, name='editar_supervisor'),
     path('supervisores/eliminar/<int:supervisor_id>/',
          views.eliminar_supervisor, name='eliminar_supervisor'),
+    path('supervisores/bloquear/<int:id>/',
+         views.bloquear_supervisor, name='bloquear_supervisor'),
+    path('supervisores/desbloquear/<int:id>/',
+         views.desbloquear_supervisor, name='desbloquear_supervisor'),
 
     # Gestion de citas
     path('citas/registrar/', views.registrar_cita, name='registro_cita'),
@@ -90,6 +113,10 @@ urlpatterns = [
          views.editar_cotizacion, name='editar_cotizacion'),
     path('cotizaciones/eliminar/<int:pk>/',
          views.eliminar_cotizacion, name='eliminar_cotizacion'),
+    path('pagar-cotizacion/<int:pk>/',
+         views.pagar_cotizacion, name='pagar_cotizacion'),
+    path('return_url/', views.return_url, name='return_url'),
+    path('final_url/', views.final_url, name='final_url'),
 
     # Ruta para mostrar los datos de procesos
     path('procesos/', views.mostrar_procesos, name='mostrar_procesos'),

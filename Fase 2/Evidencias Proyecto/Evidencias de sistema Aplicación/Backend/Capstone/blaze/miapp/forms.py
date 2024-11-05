@@ -213,7 +213,7 @@ class PagoForm(forms.ModelForm):
         model = Pago
         fields = ['monto', 'metodo_pago', 'estado_pago', 'proceso']
         widgets = {
-            'monto': forms.NumberInput(attrs={'class': 'form-control'}),
+            'monto': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '$'}),
             'metodo_pago': forms.Select(attrs={'class': 'form-control'}),
             'estado_pago': forms.Select(attrs={'class': 'form-control'}),
             'proceso': forms.Select(attrs={'class': 'form-control'}),
