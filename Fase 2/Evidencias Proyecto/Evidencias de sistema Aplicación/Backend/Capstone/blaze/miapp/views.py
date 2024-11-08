@@ -22,7 +22,7 @@ from django.core.mail import send_mail
 from firebase_admin import auth
 from django.contrib import messages
 from django.shortcuts import render
-from transbank.sdk.webpay import Webpay
+from transbank.webpay.webpay_plus.transaction import Transaction
 from django.http import JsonResponse
 
 # Importaciones de la aplicación
@@ -166,21 +166,6 @@ def login_view(request):
             messages.error(request, 'Email o contraseña incorrectos')
     return render(request, 'login.html')
 
-
-# Restabler contraseña
-
-def reset_password(request):
-    if request.method == "POST":
-        email = request.POST.get("email")
-        try:
-            auth.send_password_reset_email(email)
-            messages.success(
-                request, "Se ha enviado un correo para restablecer la contraseña.")
-            return redirect("login")
-        except Exception as e:
-            messages.error(request, str(e))
-
-    return render(request, "reset_password.html")
 
 
 # Vista para la creacion de trabajadores (solo accesible por administradores)
@@ -623,10 +608,8 @@ def lista_procesos(request):
 
 # Registrar proceso asociado a una reparacion
 
-@ login_required
-@ user_passes_test(es_admin)
-@ login_required
-@ user_passes_test(es_admin)
+@login_required
+@user_passes_test(es_admin)
 def registrar_proceso(request):
     if request.method == 'POST':
         proceso_form = ProcesoForm(request.POST)
@@ -644,8 +627,7 @@ def registrar_proceso(request):
                 dueño = proceso.vehiculo.dueño
                 dueño_email = dueño.email
                 nombre_dueño = dueño.nombre
-                detalles_proceso = f"ID del proceso: {
-                    proceso.id}, Descripción: {proceso.descripcion}"
+                detalles_proceso = f"ID del proceso: {proceso.id}, Descripción: {proceso.descripcion}"
 
                 # Envia el correo de confirmación
                 try:
@@ -853,42 +835,32 @@ def pagar_cotizacion(request, pk):
     cotizacion = get_object_or_404(Cotizacion, pk=pk)
 
     if request.method == 'POST':
-        # Verifica que la cotización sea válida para el pago
         if cotizacion.estado == 'Aceptada':
-            webpay = Webpay()
-            response = webpay.create(
+            response = Transaction.create(
                 buy_order=str(cotizacion.id),
                 session_id=str(request.session.session_key),
                 amount=cotizacion.total_estimado,
-                return_url='http://tu_dominio.com/return_url/',  # Cambia por tu URL de retorno
-                final_url='http://tu_dominio.com/final_url/'     # Cambia por tu URL final
+                return_url='https://localhost:8000/return_url/', 
+                final_url='https://localhost:8000/final_url/' 
             )
 
-            # Guardar el pago en la base de datos
-            pago = Pago(monto=cotizacion.total_estimado, metodo_pago='tarjeta',
-                        estado_pago='pendiente', cotizacion=cotizacion)
+            pago = Pago(monto=cotizacion.total_estimado, metodo_pago='tarjeta', estado_pago='pendiente', cotizacion=cotizacion)
             pago.save()
 
-            # Redirige al usuario a la URL de pago de Webpay
             return redirect(response['url'])
         else:
-            messages.error(
-                request, 'La cotización no está en un estado válido para realizar el pago.')
+            messages.error(request, 'La cotización no está en un estado válido para realizar el pago.')
     return render(request, 'cotizaciones/pagar_cotizacion.html', {'cotizacion': cotizacion})
 
-
 def return_url(request):
-    # Aquí puedes procesar la respuesta de Webpay después de que el usuario complete el pago
     return JsonResponse({'message': 'Gracias por tu pago'})
-
 
 def final_url(request):
     buy_order = request.GET.get('buy_order')
-    webpay = Webpay()
-    response = webpay.commit(buy_order)
+    token = request.GET.get('token_ws')
+    response = Transaction.commit(token)
 
     if response['status'] == 'AUTHORIZED':
-        # Actualizar el pago y la cotización como completados
         pago = Pago.objects.get(cotizacion__id=buy_order)
         pago.estado_pago = 'completado'
         pago.save()
@@ -901,6 +873,9 @@ def final_url(request):
     else:
         return JsonResponse({'message': 'Error en el pago'})
 
+	
+
+localhost:8000  
 # Exportar a Excel
 
 

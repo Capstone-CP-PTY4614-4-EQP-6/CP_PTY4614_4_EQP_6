@@ -29,7 +29,7 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('mi-cuenta/', views.mi_cuenta, name='mi_cuenta'),
     path('registrar-usuario/', views.registrar_usuario, name='registrar_usuario'),
-
+    # Contraseña firebase
     path('reset-password/', views.reset_password, name='reset_password'),
 
     # Recuperacion de contraseña

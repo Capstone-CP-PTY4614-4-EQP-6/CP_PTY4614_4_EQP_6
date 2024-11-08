@@ -15,7 +15,7 @@ class MiappConfig(AppConfig):
 def create_groups(sender, **kwargs):
     from django.contrib.auth.models import Group, Permission
     from django.contrib.contenttypes.models import ContentType
-    from miapp.models import Vehiculo, Proceso, Cotizacion, Cita, Pago, Trabajador, Dueño
+    from miapp.models import CustomUser, Perfil, Dueño, Vehiculo, Servicio, Administrador, Supervisor, Trabajador, Notificacion, Proceso, Pago, Cita, Cotizacion, DetalleCotizacion
 
     # Definir los grupos y permisos
     groups = {

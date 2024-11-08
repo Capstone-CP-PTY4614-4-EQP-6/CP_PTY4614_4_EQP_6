@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Dueño, Vehiculo, Servicio, Trabajador, Supervisor, Proceso, Pago, Cita, Cotizacion
+from .models import CustomUser, Dueño, Vehiculo, Servicio, Trabajador, Supervisor, Proceso, Pago, Cita, Cotizacion
 
 admin.site.register(Dueño)
 admin.site.register(Vehiculo)
@@ -9,6 +9,8 @@ admin.site.register(Supervisor)
 admin.site.register(Proceso)
 admin.site.register(Pago)
 admin.site.register(Cita)
+admin.site.register(CustomUser)
+
 
 
 class VehiculoInline(admin.TabularInline):

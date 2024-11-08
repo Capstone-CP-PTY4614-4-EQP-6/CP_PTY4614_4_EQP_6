@@ -3,7 +3,6 @@ from django.conf import settings
 from .models import Proceso
 from .models import Notificacion
 
-
 def enviar_correo_confirmacion(dueño_email, nombre_dueño, detalles_proceso):
     asunto = 'Confirmación de Proceso'
     mensaje = f"""
@@ -24,7 +23,6 @@ def enviar_correo_confirmacion(dueño_email, nombre_dueño, detalles_proceso):
 
     send_mail(asunto, mensaje, remitente, destinatario, fail_silently=False)
 
-
 def confirmar_proceso(proceso):
     proceso.estado_proceso = "confirmado"
     proceso.save()
@@ -38,5 +36,4 @@ def confirmar_proceso(proceso):
     notificacion.save()
 
     dueño = proceso.vehiculo.dueño
-    enviar_correo_confirmacion(dueño.email, dueño.nombre, f"ID del proceso: {
-                               proceso.id}, Descripción: {proceso.descripcion}")
+    enviar_correo_confirmacion(dueño.email, dueño.nombre, f"ID del proceso: {proceso.id}, Descripción: {proceso.descripcion}")

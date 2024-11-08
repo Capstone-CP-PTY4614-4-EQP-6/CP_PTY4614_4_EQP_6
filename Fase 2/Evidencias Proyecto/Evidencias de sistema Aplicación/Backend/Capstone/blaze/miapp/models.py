@@ -140,15 +140,14 @@ class Vehiculo(models.Model):
     patente = models.CharField(max_length=10, unique=True)
 
     def clean(self):
-        # Validación para año
+        # Validacion para año
         if self.año < 1886 or self.año > datetime.now().year:
             raise ValidationError(_('Año inválido para el vehículo.'))
 
-        # Validación para patente
+        # Validacion para patente
         regex_patente = r'^([A-Z]{2}\d{4}|[A-Z]{4}\d{2})$'
         if not re.match(regex_patente, self.patente):
-            raise ValidationError(f"La patente {
-                                  self.patente} no es válida. Debe seguir el formato AB1234 o ABCD12.")
+            raise ValidationError(f"La patente {self.patente} no es válida. Debe seguir el formato AB1234 o ABCD12.")
 
         super().clean()
 
@@ -159,7 +158,6 @@ class Vehiculo(models.Model):
     marca = models.CharField(max_length=100)
     modelo = models.CharField(max_length=100)
     año = models.IntegerField()
-
     color = models.CharField(max_length=50)
     kilometraje = models.IntegerField()
     tipo_combustible = models.CharField(max_length=50, choices=[
@@ -172,8 +170,7 @@ class Vehiculo(models.Model):
         ('en_reparacion', 'En Reparación'),
         ('no_disponible', 'No Disponible'),
     ])
-    dueño = models.ForeignKey(
-        Dueño, on_delete=models.CASCADE, related_name='vehiculos')
+    dueño = models.ForeignKey(Dueño, on_delete=models.CASCADE, related_name='vehiculos')
 
     class Meta:
         unique_together = ('patente', 'dueño')

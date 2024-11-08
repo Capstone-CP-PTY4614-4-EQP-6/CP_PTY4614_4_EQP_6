@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path, os
 from decouple import config
-from transbank.sdk.configuration import Configuration
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -101,8 +101,12 @@ AUTH_USER_MODEL = 'miapp.CustomUser'
 
 # WebPay
 
-Configuration.configure('YOUR_API_KEY', 'YOUR_API_SECRET',
-                        'http://tusitio.com/return_url/', 'http://tusitio.com/final_url/')
+"""WebpayPlus.configure_for_integration(
+    commerce_code='YOUR_COMMERCE_CODE',
+    api_key='YOUR_API_KEY',
+    integration_type=WebpayPlus.DEFAULT_INTEGRATION_TYPE
+)"""
+
 
 # Firebase
 
