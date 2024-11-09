@@ -1,16 +1,16 @@
 from django.contrib import admin
-from .models import CustomUser, Dueño, Vehiculo, Servicio, Trabajador, Supervisor, Proceso, Pago, Cita, Cotizacion
+from .models import CustomUser, Administrador, Dueño, Vehiculo, Servicio, Trabajador, Supervisor, Proceso, Pago, Cita, Cotizacion
 
 admin.site.register(Dueño)
-admin.site.register(Vehiculo)
-admin.site.register(Servicio)
 admin.site.register(Trabajador)
 admin.site.register(Supervisor)
+admin.site.register(Administrador)
+admin.site.register(Vehiculo)
+admin.site.register(Servicio)
 admin.site.register(Proceso)
 admin.site.register(Pago)
 admin.site.register(Cita)
 admin.site.register(CustomUser)
-
 
 
 class VehiculoInline(admin.TabularInline):

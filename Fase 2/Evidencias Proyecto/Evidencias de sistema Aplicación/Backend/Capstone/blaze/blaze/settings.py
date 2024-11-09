@@ -99,13 +99,9 @@ DATABASES = {
 
 AUTH_USER_MODEL = 'miapp.CustomUser'
 
-# WebPay
+# Mercado Pago
 
-"""WebpayPlus.configure_for_integration(
-    commerce_code='YOUR_COMMERCE_CODE',
-    api_key='YOUR_API_KEY',
-    integration_type=WebpayPlus.DEFAULT_INTEGRATION_TYPE
-)"""
+MERCADOPAGO_ACCESS_TOKEN = 'TEST-108293230061725-110916-a2e88e07fc22885c22baa83635e4519b-771326057'
 
 
 # Firebase
@@ -121,11 +117,9 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'nassopinares@gmail.com'
 EMAIL_HOST_PASSWORD = 'Segunda2_carril'
 
+
 SWAPPABLE_MODELS = {'fcm_django.FCMDevice': 'miapp.CustomFCMDevice',
                     }
-
-# Password validati
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {

@@ -12,7 +12,7 @@
 
   <div class="text-end mb-3">
     <a href="{% url 'crear_trabajador' %}" class="btn btn-primary"
-      >Crear Nuevo Trabajador</a
+      >Registrar trabajador</a
     >
   </div>
 
@@ -39,12 +39,12 @@
         </td>
         <td>
           <a
-            href="{% url 'editar_trabajador' trabajador.id_trabajador %}"
+            href="{% url 'editar_trabajador' trabajador_id %}"
             class="btn btn-sm btn-warning"
             >Editar</a
           >
           <a
-            href="{% url 'eliminar_trabajador' trabajador.id_trabajador %}"
+            href="{% url 'eliminar_trabajador' trabajador_id %}"
             class="btn btn-sm btn-danger"
             onclick="return confirm('¿Estás seguro de que deseas eliminar a este trabajador?');"
           >
@@ -52,13 +52,13 @@
           </a>
           {% if trabajador.bloqueado %}
           <a
-            href="{% url 'desbloquear_trabajador' trabajador.id_trabajador %}"
+            href="{% url 'desbloquear_trabajador' trabajador_id %}"
             class="btn btn-success btn-sm"
             >Desbloquear</a
           >
           {% else %}
           <a
-            href="{% url 'bloquear_trabajador' trabajador.id_trabajador %}"
+            href="{% url 'bloquear_trabajador' trabajador_id %}"
             class="btn btn-secondary btn-sm"
             >Bloquear</a
           >

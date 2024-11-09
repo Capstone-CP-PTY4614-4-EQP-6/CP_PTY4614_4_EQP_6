@@ -4,7 +4,6 @@
   <h1>Bienvenido al Taller Automotriz Blaze</h1>
   <p>Gestione sus vehículos y servicios de manera eficiente.</p>
   <div class="row">
-    <!-- Sección para Clientes y usuarios -->
     <div class="col-md-12">
       <div class="card mb-4 shadow-sm">
         <div class="card-body">
@@ -110,8 +109,73 @@
         </div>
       </div>
     </div>
-    <!-- Sección para Dueños -->
-    {% if is_dueño %}
+
+    <!-- Sección para Administradores -->
+    {% if is_administrador %}
+    <div class="card mb-4">
+      <h5 class="card-title text-center font-weight-bold">
+        Servicios para Administradores
+      </h5>
+      <p class="card-text text-center">
+        Como Administrador, puedes gestionar y supervisar todos los aspectos del
+        taller, incluyendo la asignación de tareas, la gestión de pagos y la
+        coordinación de citas.
+      </p>
+      <ul class="list-group list-group-flush">
+        <li
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
+          Gestión de empleados y asignación de tareas
+          <span class="badge bg-primary rounded-pill">Esencial</span>
+        </li>
+        <li
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
+          Supervisión de pagos y cobros
+          <span class="badge bg-secondary rounded-pill">Crucial</span>
+        </li>
+        <li
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
+          Monitoreo de citas y reparaciones
+          <span class="badge bg-success rounded-pill">Clave</span>
+        </li>
+        <li
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
+          Generación de reportes y estadísticas
+          <span class="badge bg-warning text-dark rounded-pill"
+            >Recomendado</span
+          >
+        </li>
+      </ul>
+    </div>
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Trabajadores</h5>
+          <a href="{% url 'lista_trabajadores' %}" class="btn btn-primary"
+            >Consultar Trabajadores</a
+          >
+          <a href="{% url 'crear_trabajador' %}" class="btn btn-success mt-2"
+            >Registrar Trabajador</a
+          >
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Supervisar Procesos</h5>
+          <a href="{% url 'lista_procesos' %}" class="btn btn-primary"
+            >Consultar Procesos</a
+          >
+          <a href="{% url 'crear_supervisor' %}" class="btn btn-success mt-2"
+            >Registrar Supervisor</a
+          >
+        </div>
+      </div>
+    </div>
     <div class="col-md-4">
       <div class="card mb-4">
         <div class="card-body">
@@ -168,25 +232,46 @@
     </div>
     {% endif %}
 
-    <!-- Sección para Administradores -->
-    {% if is_administrador %}
-    <div class="col-md-4">
-      <div class="card mb-4">
-        <div class="card-body">
-          <h5 class="card-title">Trabajadores</h5>
-          <a href="{% url 'lista_trabajadores' %}" class="btn btn-primary"
-            >Consultar Trabajadores</a
-          >
-          <a href="{% url 'crear_trabajador' %}" class="btn btn-success mt-2"
-            >Crear Trabajador</a
-          >
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
     <!-- Sección para Trabajadores -->
     {% if is_trabajador %}
+    <div class="card mb-4">
+      <h5 class="card-title text-center font-weight-bold">
+        Servicios para Trabajadores
+      </h5>
+      <p class="card-text text-center">
+        Como Trabajador, te enfocarás en la ejecución de las reparaciones y
+        tareas asignadas, cumpliendo con los estándares de calidad y plazos
+        establecidos.
+      </p>
+      <ul class="list-group list-group-flush">
+        <li
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
+          Realización de reparaciones mecánicas y mantenimiento
+          <span class="badge bg-primary rounded-pill">Esencial</span>
+        </li>
+        <li
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
+          Diagnóstico de problemas mecánicos
+          <span class="badge bg-secondary rounded-pill">Crucial</span>
+        </li>
+        <li
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
+          Ejecución de trabajos de pintura y carrocería
+          <span class="badge bg-success rounded-pill">Importante</span>
+        </li>
+        <li
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
+          Cumplimiento de tiempos establecidos para las reparaciones
+          <span class="badge bg-warning text-dark rounded-pill"
+            >Recomendado</span
+          >
+        </li>
+      </ul>
+    </div>
     <div class="col-md-4">
       <div class="card mb-4">
         <div class="card-body">
@@ -201,6 +286,45 @@
 
     <!-- Sección para Supervisores -->
     {% if is_supervisor %}
+    <div class="card mb-4">
+      <h5 class="card-title text-center font-weight-bold">
+        Servicios para Supervisores
+      </h5>
+      <p class="card-text text-center">
+        Como Supervisor, te encargarás de coordinar y supervisar las
+        reparaciones y tareas del taller, asegurando que todo se realice de
+        acuerdo con los estándares de calidad.
+      </p>
+      <ul class="list-group list-group-flush">
+        <li
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
+          Supervisión de la calidad de las reparaciones
+          <span class="badge bg-primary rounded-pill">Esencial</span>
+        </li>
+        <li
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
+          Asignación de mecánicos a las reparaciones
+          <span class="badge bg-secondary rounded-pill">Clave</span>
+        </li>
+        <li
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
+          Gestión de los tiempos y procesos de reparación
+          <span class="badge bg-success rounded-pill">Importante</span>
+        </li>
+        <li
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
+          Revisión de avances en las tareas asignadas
+          <span class="badge bg-warning text-dark rounded-pill"
+            >Recomendado</span
+          >
+        </li>
+      </ul>
+    </div>
+
     <div class="col-md-4">
       <div class="card mb-4">
         <div class="card-body">
@@ -209,7 +333,7 @@
             >Consultar Procesos</a
           >
           <a href="{% url 'crear_supervisor' %}" class="btn btn-success mt-2"
-            >Crear Supervisor</a
+            >Registrar Supervisor</a
           >
         </div>
       </div>

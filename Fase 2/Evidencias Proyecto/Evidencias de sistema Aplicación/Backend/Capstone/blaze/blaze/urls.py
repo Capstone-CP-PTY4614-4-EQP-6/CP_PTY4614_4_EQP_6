@@ -57,8 +57,9 @@ urlpatterns = [
     path('dueños/editar/<int:id>/', views.editar_dueño, name='editar_dueño'),
     path('dueños/eliminar/<int:dueño_id>/',
          views.eliminar_dueño, name='eliminar_dueño'),
-    path('dueños/bloquear/<int:id>/', views.bloquear_dueño, name='bloquear_dueño'),
-    path('dueños/desbloquear/<int:id>/',
+    path('dueños/bloquear/<int:dueño_id>/',
+         views.bloquear_dueño, name='bloquear_dueño'),
+    path('dueños/desbloquear/<int:dueño_id>/',
          views.desbloquear_dueño, name='desbloquear_dueño'),
 
     # Gestion de trabajadores
@@ -74,15 +75,15 @@ urlpatterns = [
          views.desbloquear_trabajador, name='desbloquear_trabajador'),
 
     # Gestion de supervisores
-    path('supervisores/', views.lista_supervisores, name='listar_supervisores'),
+    path('supervisores/', views.lista_supervisores, name='lista_supervisores'),
     path('supervisores/crear/', views.crear_supervisor, name='crear_supervisor'),
     path('supervisores/editar/<int:supervisor_id>/',
          views.editar_supervisor, name='editar_supervisor'),
     path('supervisores/eliminar/<int:supervisor_id>/',
          views.eliminar_supervisor, name='eliminar_supervisor'),
-    path('supervisores/bloquear/<int:id>/',
+    path('supervisores/bloquear/<int:supervisor_id>/',
          views.bloquear_supervisor, name='bloquear_supervisor'),
-    path('supervisores/desbloquear/<int:id>/',
+    path('supervisores/desbloquear/<int:supervisor_id>/',
          views.desbloquear_supervisor, name='desbloquear_supervisor'),
 
     # Gestion de citas
@@ -92,9 +93,10 @@ urlpatterns = [
     path('citas/eliminar/<int:pk>/', views.eliminar_cita, name='eliminar_cita'),
 
     # Gestion de pagos
-    path('pagos/registrar/', views.registrar_pago, name='registro_pago'),
-    path('pagos/', views.lista_pagos, name='lista_pagos'),
-    path('pagos/editar/<int:pk>/', views.editar_pago, name='editar_pago'),
+    path('pagar-cotizacion/<int:pk>/',
+         views.pagar_cotizacion, name='pagar_cotizacion'),
+    path('return_url/', views.return_url, name='return_url'),
+    path('final_url/', views.final_url, name='final_url'),
 
     # Gestion procesos
     path('procesos/registrar/', views.registrar_proceso,

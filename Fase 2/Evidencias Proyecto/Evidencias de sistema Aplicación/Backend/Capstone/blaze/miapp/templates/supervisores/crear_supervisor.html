@@ -1,10 +1,9 @@
 {% extends 'base.html' %} {% block content %}
 <div class="container mt-5">
-  <h2>Registrar Supervisor</h2>
+  <h2>Registrar supervisor</h2>
 
   <form method="post">
     {% csrf_token %} {{ form.as_p }}
-    <button type="submit">Guardar</button>
     <button type="submit" class="btn btn-success">Registrar supervisor</button>
     <a href="{% url 'lista_supervisores' %}" class="btn btn-secondary"
       >Cancelar</a

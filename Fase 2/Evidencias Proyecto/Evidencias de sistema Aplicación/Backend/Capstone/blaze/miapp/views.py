@@ -22,8 +22,8 @@ from django.core.mail import send_mail
 from firebase_admin import auth
 from django.contrib import messages
 from django.shortcuts import render
-from transbank.webpay.webpay_plus.transaction import Transaction
 from django.http import JsonResponse
+from django.conf import settings
 
 # Importaciones de la aplicación
 from .models import CustomUserManager, CustomUser, Perfil, Dueño, Vehiculo, Servicio, Administrador, Supervisor, Trabajador, Notificacion, Proceso, Pago, Cita, Cotizacion, DetalleCotizacion
@@ -33,7 +33,13 @@ from .firebase import reset_password
 
 # Librerias
 import pandas as pd
+import mercadopago
 from openpyxl import Workbook
+
+
+# Usuario
+
+CustomUser = get_user_model()
 
 
 # Administrador
@@ -54,15 +60,12 @@ def create_admin(request):
             user = form.save(commit=False)
             user.is_admin = True
             user.save()
-            return redirect('success_page')
+            messages.success(request, 'Administrador creado con éxito')
+            return redirect('inicio')
     else:
         form = AdminCreationForm()
     return render(request, 'create_admin.html', {'form': form})
 
-
-# Usuario
-
-CustomUser = get_user_model()
 
 # Notificaciones
 
@@ -109,14 +112,16 @@ def crear_guardar_perfil(sender, instance, created, **kwargs):
 
 
 def es_admin(user):
-    return user.is_staff or user.groups.filter(name='Administradores').exists()
-
+    if user.is_staff or user.groups.filter(name='Administradores').exists():
+        return True
+    else:
+        print(f"Usuario {user.username} no tiene permisos de administrador.")
+        return False
 
 # Vista de inicio
 
+
 def inicio(request):
-    is_cliente = request.user.groups.filter(
-        name="Clientes").exists() if request.user.is_authenticated else False
     is_dueño = request.user.groups.filter(
         name="Dueños").exists() if request.user.is_authenticated else False
     is_supervisor = request.user.groups.filter(
@@ -127,7 +132,6 @@ def inicio(request):
         name="Trabajadores").exists() if request.user.is_authenticated else False
 
     context = {
-        'is_cliente': is_cliente,
         'is_dueño': is_dueño,
         'is_supervisor': is_supervisor,
         'is_administrador': is_administrador,
@@ -156,8 +160,6 @@ def login_view(request):
                 return redirect('inicio')
             elif user.perfil.rol == 'Supervisor':
                 return redirect('inicio')
-            elif user.perfil.rol == 'Clientes':
-                return redirect('inicio')
             elif user.perfil.rol == 'Trabajador':
                 return redirect('inicio')
             else:
@@ -167,7 +169,6 @@ def login_view(request):
     return render(request, 'login.html')
 
 
-
 # Vista para la creacion de trabajadores (solo accesible por administradores)
 
 
@@ -175,37 +176,48 @@ def login_view(request):
 @ perfil_requerido
 @ user_passes_test(es_admin)
 def crear_trabajador(request):
-    if request.user.perfil.rol != 'Admin':
-        messages.error(
-            request, 'No tienes permiso para acceder a esta página')
+    if not es_admin(request.user):
+        messages.error(request, 'No tienes permiso para acceder a esta página')
         return redirect('inicio')
 
     if request.method == 'POST':
         form = AdminTrabajadorForm(request.POST)
         if form.is_valid():
-            trabajador = form.save(commit=False)
             email = form.cleaned_data['email']
-            password = form.cleaned_data['password']
-            user = CustomUser.objects.create_user(
-                email=email, password=password)
-            trabajador.perfil = Perfil.objects.create(
-                user=user, rol='Trabajador')
-            trabajador.save()
-            messages.success(request, 'Trabajador creado con éxito')
-            return redirect('inicio')
+
+            # Verificar si el correo electrónico ya existe
+            if CustomUser.objects.filter(email=email).exists():
+                form.add_error(
+                    'email', 'Este correo electrónico ya está en uso.')
+            else:
+                password = form.cleaned_data['password']
+
+                # Crear el usuario personalizado
+                user = CustomUser.objects.create_user(
+                    email=email,
+                    password=password
+                )
+
+                # Asignar el perfil al trabajador
+                trabajador = form.save(commit=False)
+                trabajador.perfil = Perfil.objects.create(
+                    CustomUser=user, rol='Trabajador')
+                trabajador.save()
+
+                messages.success(request, 'Trabajador creado con éxito')
+                return redirect('inicio')
     else:
         form = AdminTrabajadorForm()
+
     return render(request, 'trabajadores/crear_trabajador.html', {'form': form})
 
 
-# Vista para gestionar los trabajadores (solo accesible por administradores)
-
 @ login_required
+@ perfil_requerido
 @user_passes_test(es_admin)
 def lista_trabajadores(request):
-    if request.user.perfil.rol != 'Admin':
-        messages.error(
-            request, 'No tienes permiso para acceder a esta página')
+    if not es_admin(request.user):
+        messages.error(request, 'No tienes permiso para acceder a esta página')
         return redirect('inicio')
 
     trabajadores = Trabajador.objects.all()
@@ -213,14 +225,14 @@ def lista_trabajadores(request):
 
 
 @login_required
+@ perfil_requerido
 @user_passes_test(es_admin)
-def editar_trabajador(request, id_trabajador):
-    if request.user.perfil.rol != 'Admin':
-        messages.error(
-            request, 'No tienes permiso para acceder a esta página')
+def editar_trabajador(request, trabajador_id):
+    if not es_admin(request.user):
+        messages.error(request, 'No tienes permiso para acceder a esta página')
         return redirect('inicio')
 
-    trabajador = get_object_or_404(Trabajador, id_trabajador=id_trabajador)
+    trabajador = get_object_or_404(Trabajador, id=trabajador_id)
 
     if request.method == 'POST':
         form = AdminTrabajadorForm(request.POST, instance=trabajador)
@@ -235,13 +247,14 @@ def editar_trabajador(request, id_trabajador):
 
 
 @login_required
+@ perfil_requerido
 @user_passes_test(es_admin)
-def eliminar_trabajador(request, id_trabajador):
-    if request.user.perfil.rol != 'Admin':
+def eliminar_trabajador(request, trabajador_id):
+    if not es_admin(request.user):
         messages.error(request, 'No tienes permiso para acceder a esta página')
         return redirect('inicio')
 
-    trabajador = get_object_or_404(Trabajador, id_trabajador=id_trabajador)
+    trabajador = get_object_or_404(Trabajador, id=trabajador_id)
 
     if request.method == 'POST':
         try:
@@ -255,6 +268,7 @@ def eliminar_trabajador(request, id_trabajador):
 
 
 @login_required
+@ perfil_requerido
 @user_passes_test(es_admin)
 def bloquear_trabajador(request, trabajador_id):
     trabajador = get_object_or_404(Trabajador, id=trabajador_id)
@@ -264,6 +278,7 @@ def bloquear_trabajador(request, trabajador_id):
 
 
 @login_required
+@ perfil_requerido
 @user_passes_test(es_admin)
 def desbloquear_trabajador(request, trabajador_id):
     trabajador = get_object_or_404(Trabajador, id=trabajador_id)
@@ -275,43 +290,73 @@ def desbloquear_trabajador(request, trabajador_id):
 
 
 @login_required
+@perfil_requerido
 @user_passes_test(es_admin)
 def lista_supervisores(request):
+    if not es_admin(request.user):
+        messages.error(request, 'No tienes permiso para acceder a esta página')
+        return redirect('inicio')
     supervisores = Supervisor.objects.all()
-    return render(request, 'lista_supervisores.html', {'supervisores': supervisores})
+    return render(request, 'supervisores/lista_supervisores.html', {'supervisores': supervisores})
 
 
 @login_required
+@ perfil_requerido
 @user_passes_test(es_admin)
 def crear_supervisor(request):
+    if not es_admin(request.user):
+        messages.error(request, 'No tienes permiso para acceder a esta página')
+        return redirect('inicio')
+
     if request.method == 'POST':
         form = AdminSupervisorForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect('lista_supervisores')
+            supervisor = form.save(commit=False)
+            email = form.cleaned_data['email']
+            password = form.cleaned_data['password']
+            user = CustomUser.objects.create_user(
+                email=email, password=password)
+            supervisor.perfil = Perfil.objects.create(
+                user=user, rol='Supervisor')
+            supervisor.save()
+            messages.success(request, 'Supervisor creado con éxito')
+            return redirect('inicio')
     else:
         form = AdminSupervisorForm()
-    return render(request, 'crear_supervisor.html', {'form': form})
+    return render(request, 'supervisores/crear_supervisor.html', {'form': form})
 
 
 @login_required
+@ perfil_requerido
 @user_passes_test(es_admin)
 def editar_supervisor(request, supervisor_id):
+    if not es_admin(request.user):
+        messages.error(request, 'No tienes permiso para acceder a esta página')
+        return redirect('inicio')
+
     supervisor = get_object_or_404(Supervisor, id=supervisor_id)
+
     if request.method == 'POST':
         form = AdminSupervisorForm(request.POST, instance=supervisor)
         if form.is_valid():
             form.save()
+            messages.success(request, 'Supervisor editado con éxito')
             return redirect('lista_supervisores')
     else:
         form = AdminSupervisorForm(instance=supervisor)
-    return render(request, 'editar_supervisor.html', {'form': form, 'supervisor': supervisor})
+    return render(request, 'supervisores/editar_supervisor.html', {'form': form, 'supervisor': supervisor})
 
 
 @login_required
+@ perfil_requerido
 @user_passes_test(es_admin)
 def eliminar_supervisor(request, supervisor_id):
+    if not es_admin(request.user):
+        messages.error(request, 'No tienes permiso para acceder a esta página')
+        return redirect('inicio')
+
     supervisor = get_object_or_404(Supervisor, id=supervisor_id)
+
     if request.method == 'POST':
         try:
             supervisor.delete()
@@ -319,15 +364,23 @@ def eliminar_supervisor(request, supervisor_id):
         except Exception as e:
             messages.error(request, f'Error eliminando supervisor: {str(e)}')
         return redirect('lista_supervisores')
-    return render(request, 'eliminar_supervisor.html', {'supervisor': supervisor})
+    return render(request, 'supervisores/eliminar_supervisor.html', {'supervisor': supervisor})
 
 
 @login_required
 @user_passes_test(es_admin)
 def bloquear_supervisor(request, supervisor_id):
     supervisor = get_object_or_404(Supervisor, id=supervisor_id)
-    supervisor.bloqueado = True
-    supervisor.save()
+
+    if not supervisor.bloqueado:
+        supervisor.bloqueado = True
+        supervisor.save()
+        messages.success(request, f"Supervisor {
+                         supervisor.nombre} bloqueado correctamente.")
+    else:
+        messages.info(request, f"El supervisor {
+                      supervisor.nombre} ya está bloqueado.")
+
     return redirect('lista_supervisores')
 
 
@@ -335,8 +388,16 @@ def bloquear_supervisor(request, supervisor_id):
 @user_passes_test(es_admin)
 def desbloquear_supervisor(request, supervisor_id):
     supervisor = get_object_or_404(Supervisor, id=supervisor_id)
-    supervisor.bloqueado = False
-    supervisor.save()
+
+    if supervisor.bloqueado:
+        supervisor.bloqueado = False
+        supervisor.save()
+        messages.success(request, f"Supervisor {
+                         supervisor.nombre} desbloqueado correctamente.")
+    else:
+        messages.info(request, f"El supervisor {
+                      supervisor.nombre} ya está desbloqueado.")
+
     return redirect('lista_supervisores')
 
 # Mi cuenta
@@ -438,9 +499,6 @@ def lista_dueños(request):
 
 @login_required
 def registrar_dueño(request):
-    if hasattr(request.user, 'dueño'):
-        messages.error(request, 'Este usuario ya está registrado como dueño')
-        return redirect('inicio')
 
     if request.method == 'POST':
         form = DueñoForm(request.POST, user=request.user)
@@ -524,7 +582,7 @@ def lista_vehiculos(request):
     try:
         dueño = request.user.dueño
     except ObjectDoesNotExist:
-        messages.error(request, "El usuario no tiene un dueño asociado.")
+        messages.error(request, "No tienes un vehiculo registrado")
         return redirect('inicio')
 
     vehiculos = dueño.vehiculos.all()
@@ -544,8 +602,11 @@ def lista_vehiculos(request):
 
 @ login_required
 def registrar_vehiculo(request):
-    if not hasattr(request.user, 'dueño'):
-        messages.error(request, 'No tienes un perfil de dueño asociado.')
+    if not (request.user.groups.filter(name='dueños').exists() or
+            request.user.groups.filter(name='administradores').exists() or
+            request.user.groups.filter(name='trabajadores').exists() or
+            request.user.groups.filter(name='supervisores').exists()):
+        messages.error(request, 'No tiene permisos para registrar vehículos')
         return redirect('inicio')
 
     if request.method == 'POST':
@@ -554,7 +615,7 @@ def registrar_vehiculo(request):
             vehiculo = form.save(commit=False)
             vehiculo.dueño = request.user.dueño
             vehiculo.save()
-            messages.success(request, 'Vehículo registrado correctamente.')
+            messages.success(request, 'Vehículo registrado correctamente')
             return redirect('lista_vehiculos')
         else:
             print(form.errors)
@@ -569,7 +630,7 @@ def editar_vehiculo(request, pk):
     vehiculo = get_object_or_404(Vehiculo, pk=pk)
 
     if vehiculo.dueño != request.user.dueño:
-        messages.error(request, "No tienes permiso para editar este vehículo.")
+        messages.error(request, "No tienes permiso para editar este vehículo")
         return redirect('lista_vehiculos')
 
     if request.method == 'POST':
@@ -627,7 +688,8 @@ def registrar_proceso(request):
                 dueño = proceso.vehiculo.dueño
                 dueño_email = dueño.email
                 nombre_dueño = dueño.nombre
-                detalles_proceso = f"ID del proceso: {proceso.id}, Descripción: {proceso.descripcion}"
+                detalles_proceso = f"ID del proceso: {
+                    proceso.id}, Descripción: {proceso.descripcion}"
 
                 # Envia el correo de confirmación
                 try:
@@ -836,36 +898,60 @@ def pagar_cotizacion(request, pk):
 
     if request.method == 'POST':
         if cotizacion.estado == 'Aceptada':
-            response = Transaction.create(
-                buy_order=str(cotizacion.id),
-                session_id=str(request.session.session_key),
-                amount=cotizacion.total_estimado,
-                return_url='https://localhost:8000/return_url/', 
-                final_url='https://localhost:8000/final_url/' 
-            )
+            sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
 
-            pago = Pago(monto=cotizacion.total_estimado, metodo_pago='tarjeta', estado_pago='pendiente', cotizacion=cotizacion)
-            pago.save()
+            payment_data = {
+                "transaction_amount": float(cotizacion.total_estimado),
+                "token": request.POST.get('token'),
+                "description": f"Cotización {cotizacion.id}",
+                "installments": 1,
+                "payment_method_id": request.POST.get('payment_method_id'),
+                "payer": {
+                    "email": request.user.email,
+                }
+            }
 
-            return redirect(response['url'])
+            payment_response = sdk.payment().create(payment_data)
+            payment = payment_response["response"]
+
+            if payment["status"] == "approved":
+                pago = Pago(
+                    monto=cotizacion.total_estimado,
+                    metodo_pago='mercadopago',
+                    estado_pago='completado',
+                    cotizacion=cotizacion
+                )
+                pago.save()
+
+                cotizacion.estado = 'Pagado'
+                cotizacion.save()
+
+                messages.success(request, 'Pago realizado con éxito.')
+                return redirect('lista_cotizaciones')
+            else:
+                messages.error(request, f'Error en el pago: {
+                               payment["status_detail"]}')
         else:
-            messages.error(request, 'La cotización no está en un estado válido para realizar el pago.')
+            messages.error(
+                request, 'La cotización no está en un estado válido para realizar el pago.')
     return render(request, 'cotizaciones/pagar_cotizacion.html', {'cotizacion': cotizacion})
+
 
 def return_url(request):
     return JsonResponse({'message': 'Gracias por tu pago'})
 
-def final_url(request):
-    buy_order = request.GET.get('buy_order')
-    token = request.GET.get('token_ws')
-    response = Transaction.commit(token)
 
-    if response['status'] == 'AUTHORIZED':
-        pago = Pago.objects.get(cotizacion__id=buy_order)
+def final_url(request):
+    payment_id = request.GET.get('payment_id')
+    status = request.GET.get('status')
+    merchant_order_id = request.GET.get('merchant_order_id')
+
+    if status == 'approved':
+        pago = Pago.objects.get(cotizacion__id=merchant_order_id)
         pago.estado_pago = 'completado'
         pago.save()
 
-        cotizacion = Cotizacion.objects.get(id=buy_order)
+        cotizacion = Cotizacion.objects.get(id=merchant_order_id)
         cotizacion.estado = 'Pagado'
         cotizacion.save()
 
@@ -873,9 +959,7 @@ def final_url(request):
     else:
         return JsonResponse({'message': 'Error en el pago'})
 
-	
 
-localhost:8000  
 # Exportar a Excel
 
 

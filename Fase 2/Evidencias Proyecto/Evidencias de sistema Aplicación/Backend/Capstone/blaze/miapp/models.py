@@ -20,7 +20,7 @@ import re
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
-            raise ValueError(_('The Email field must be set'))
+            raise ValueError(_('Error en el email'))
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
@@ -44,10 +44,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
 
+    objects = CustomUserManager()
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['nombre', 'apellido']
-
-    objects = CustomUserManager()
 
     def __str__(self):
         return self.email
@@ -60,7 +60,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
 class Perfil(models.Model):
     USER_ROLES = (
-        ('cliente', 'Cliente'),
         ('dueño', 'Dueño'),
         ('administrador', 'Administrador'),
         ('trabajador', 'Trabajador'),
@@ -69,7 +68,7 @@ class Perfil(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     rol = models.CharField(
-        max_length=20, choices=USER_ROLES, default='cliente')
+        max_length=20, choices=USER_ROLES, default='dueño')
 
     def __str__(self):
         return f"{self.user.email} - {self.rol}"
@@ -81,9 +80,7 @@ class Perfil(models.Model):
 def asignar_grupo_por_rol(sender, instance, created, **kwargs):
     if created:
         group = None
-        if instance.rol == 'cliente':
-            group = Group.objects.get(name='Clientes')
-        elif instance.rol == 'administrador':
+        if instance.rol == 'administrador':
             group = Group.objects.get(name='Administradores')
         elif instance.rol == 'trabajador':
             group = Group.objects.get(name='Trabajadores')
@@ -147,7 +144,8 @@ class Vehiculo(models.Model):
         # Validacion para patente
         regex_patente = r'^([A-Z]{2}\d{4}|[A-Z]{4}\d{2})$'
         if not re.match(regex_patente, self.patente):
-            raise ValidationError(f"La patente {self.patente} no es válida. Debe seguir el formato AB1234 o ABCD12.")
+            raise ValidationError(f"La patente {
+                                  self.patente} no es válida. Debe seguir el formato AB1234 o ABCD12.")
 
         super().clean()
 
@@ -170,7 +168,8 @@ class Vehiculo(models.Model):
         ('en_reparacion', 'En Reparación'),
         ('no_disponible', 'No Disponible'),
     ])
-    dueño = models.ForeignKey(Dueño, on_delete=models.CASCADE, related_name='vehiculos')
+    dueño = models.ForeignKey(
+        Dueño, on_delete=models.CASCADE, related_name='vehiculos')
 
     class Meta:
         unique_together = ('patente', 'dueño')
@@ -192,7 +191,7 @@ class Servicio(models.Model):
 
 
 class Administrador(models.Model):
-    rut = models.CharField(max_length=12, primary_key=True, unique=True)
+    rut = models.CharField(max_length=12, primary_key=True)
     nombre = models.CharField(max_length=50)
     apellido = models.CharField(max_length=50)
     telefono = models.CharField(max_length=15)
@@ -217,14 +216,14 @@ class Administrador(models.Model):
     asignacion = models.CharField(max_length=50, choices=ASIGNACION_OPCIONES)
     perfil = models.ForeignKey(
         Perfil, on_delete=models.CASCADE, related_name='administrador')
-    rol = models.CharField(max_length=50, null=True, blank=True)
+    rol = models.CharField(max_length=50, default='Administrador', blank=False)
 
     def __str__(self):
         return f"{self.nombre} {self.apellido} - {self.rol}"
 
 
 class Supervisor(models.Model):
-    rut = models.AutoField(primary_key=True)
+    rut = models.CharField(max_length=12, primary_key=True)
     nombre = models.CharField(max_length=50)
     apellido = models.CharField(max_length=50)
     telefono = models.CharField(max_length=15)
@@ -249,14 +248,14 @@ class Supervisor(models.Model):
     asignacion = models.CharField(max_length=50, choices=ASIGNACION_OPCIONES)
     perfil = models.ForeignKey(
         Perfil, on_delete=models.CASCADE, related_name='supervisor')
-    rol = models.CharField(max_length=50, null=True, blank=True)
+    rol = models.CharField(max_length=50, default='Supervisor', blank=False)
 
     def __str__(self):
         return f"{self.nombre} {self.apellido} - {self.rol}"
 
 
 class Trabajador(models.Model):
-    id_trabajador = models.AutoField(primary_key=True)
+    id_trabajador = models.AutoField(primary_key=True, default=0)
     rut = models.CharField(max_length=12)
     nombre = models.CharField(max_length=50)
     apellido = models.CharField(max_length=50)
@@ -277,7 +276,6 @@ class Trabajador(models.Model):
         ('mecanico', 'Mecánico'),
         ('pintor', 'Pintor'),
         ('electrico', 'Eléctrico'),
-        ('jefe_taller', 'Jefe de Taller'),
     ]
     disponibilidad = models.CharField(
         max_length=50, choices=DISPONIBILIDAD_OPCIONES)
@@ -285,7 +283,7 @@ class Trabajador(models.Model):
     asignacion = models.CharField(max_length=50, choices=ASIGNACION_OPCIONES)
     perfil = models.ForeignKey(
         Perfil, on_delete=models.CASCADE, related_name='trabajador')
-    rol = models.CharField(max_length=50, null=True, blank=True)
+    rol = models.CharField(max_length=50, default='Trabajador', blank=False)
 
     def __str__(self):
         return f"{self.nombre} {self.apellido} - {self.rol}"
@@ -341,7 +339,8 @@ class Proceso(models.Model):
         max_length=100, choices=ESTADO_PROCESO_OPCIONES)
     prioridad = models.CharField(max_length=50, choices=PRIORIDAD_OPCIONES)
     comentarios = models.TextField(null=True, blank=True)
-    trabajador = models.ForeignKey(Trabajador, on_delete=models.CASCADE)
+    trabajador = models.ForeignKey(
+        'Trabajador', on_delete=models.CASCADE)
     vehiculo = models.ForeignKey(
         'Vehiculo', on_delete=models.CASCADE, default=1)
     notificaciones = models.ManyToManyField(

@@ -1,12 +1,133 @@
-{% extends 'base.html' %} {% block content %}
-<div class="container mt-5">
-  <h2>Pagar Cotización</h2>
-  <p>Vehículo: {{ cotizacion.vehiculo }}</p>
-  <p>Total Estimado: {{ cotizacion.total_estimado }}</p>
+{% extends "base.html" %} {% block content %}
+<h2>Pagar Cotización</h2>
+<p>Cotización ID: {{ cotizacion.id }}</p>
+<p>Total Estimado: {{ cotizacion.total_estimado }}</p>
+<form method="post" id="paymentForm">
+  {% csrf_token %}
+  <input type="hidden" name="token" id="token" />
+  <input type="hidden" name="payment_method_id" id="payment_method_id" />
+  <div>
+    <label for="form-checkout__cardholderName">Titular de la tarjeta</label>
+    <input type="text" id="form-checkout__cardholderName" />
+  </div>
+  <div>
+    <label for="form-checkout__cardNumber">Número de la tarjeta</label>
+    <input type="text" id="form-checkout__cardNumber" />
+  </div>
+  <div>
+    <label for="form-checkout__cardExpirationMonth">Mes de expiración</label>
+    <input type="text" id="form-checkout__cardExpirationMonth" />
+  </div>
+  <div>
+    <label for="form-checkout__cardExpirationYear">Año de expiración</label>
+    <input type="text" id="form-checkout__cardExpirationYear" />
+  </div>
+  <div>
+    <label for="form-checkout__securityCode">Código de seguridad</label>
+    <input type="text" id="form-checkout__securityCode" />
+  </div>
+  <div>
+    <label for="form-checkout__installments">Cuotas</label>
+    <select id="form-checkout__installments"></select>
+  </div>
+  <div>
+    <label for="form-checkout__identificationType">Tipo de documento</label>
+    <select id="form-checkout__identificationType"></select>
+  </div>
+  <div>
+    <label for="form-checkout__identificationNumber">Número de documento</label>
+    <input type="text" id="form-checkout__identificationNumber" />
+  </div>
+  <div>
+    <label for="form-checkout__issuer">Banco emisor</label>
+    <select id="form-checkout__issuer"></select>
+  </div>
+  <button type="submit" class="btn btn-primary">Pagar con Mercado Pago</button>
+</form>
 
-  <form method="post">
-    {% csrf_token %}
-    <button type="submit">Pagar</button>
-  </form>
-  {% endblock %}
-</div>
+<script src="https://sdk.mercadopago.com/js/v2"></script>
+<script>
+  const mp = new MercadoPago("TU_PUBLIC_KEY", {
+    locale: "es-AR",
+  });
+
+  const cardForm = mp.cardForm({
+    amount: "{{ cotizacion.total_estimado }}",
+    autoMount: true,
+    form: {
+      id: "paymentForm",
+      cardholderName: {
+        id: "form-checkout__cardholderName",
+        placeholder: "Titular de la tarjeta",
+      },
+      cardholderEmail: {
+        id: "form-checkout__cardholderEmail",
+        placeholder: "E-mail",
+      },
+      cardNumber: {
+        id: "form-checkout__cardNumber",
+        placeholder: "Número de la tarjeta",
+      },
+      cardExpirationMonth: {
+        id: "form-checkout__cardExpirationMonth",
+        placeholder: "MM",
+      },
+      cardExpirationYear: {
+        id: "form-checkout__cardExpirationYear",
+        placeholder: "YY",
+      },
+      securityCode: {
+        id: "form-checkout__securityCode",
+        placeholder: "Código de seguridad",
+      },
+      installments: {
+        id: "form-checkout__installments",
+        placeholder: "Cuotas",
+      },
+      identificationType: {
+        id: "form-checkout__identificationType",
+        placeholder: "Tipo de documento",
+      },
+      identificationNumber: {
+        id: "form-checkout__identificationNumber",
+        placeholder: "Número de documento",
+      },
+      issuer: {
+        id: "form-checkout__issuer",
+        placeholder: "Banco emisor",
+      },
+    },
+    callbacks: {
+      onFormMounted: (error) => {
+        if (error) return console.warn("Form Mounted handling error: ", error);
+        console.log("Form mounted");
+      },
+      onSubmit: (event) => {
+        event.preventDefault();
+        const {
+          paymentMethodId,
+          issuerId,
+          cardholderEmail: email,
+          amount,
+          token,
+          installments,
+          identificationNumber,
+          identificationType,
+        } = cardForm.getCardFormData();
+        document.getElementById("token").value = token;
+        document.getElementById("payment_method_id").value = paymentMethodId;
+        document.getElementById("paymentForm").submit();
+      },
+      onFetching: (resource) => {
+        console.log("Fetching resource: ", resource);
+        const progressBar = document.querySelector(".progress-bar");
+        progressBar.removeAttribute("value");
+
+        return () => {
+          progressBar.setAttribute("value", "0");
+        };
+      },
+    },
+  });
+</script>
+{% endblock %}

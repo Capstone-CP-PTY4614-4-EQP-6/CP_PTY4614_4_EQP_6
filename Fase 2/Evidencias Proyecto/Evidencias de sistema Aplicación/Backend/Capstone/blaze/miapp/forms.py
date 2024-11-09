@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from .models import CustomUser
+from django.contrib.auth.password_validation import validate_password
 
 # Get the custom user model
 User = get_user_model()
@@ -21,51 +22,108 @@ class AdminCreationForm(UserCreationForm):
 
 
 class AdminTrabajadorForm(forms.ModelForm):
+    # Añadimos el campo de contraseña como un campo adicional
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+
     class Meta:
         model = Trabajador
         fields = ['rut', 'nombre', 'apellido', 'asignacion',
                   'telefono', 'email', 'direccion', 'disponibilidad', 'estado', 'rol']
         widgets = {
-            'rut': forms.TextInput(attrs={'class': 'form-control'}),
+            'rut': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '12345678-9'}),
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'apellido': forms.TextInput(attrs={'class': 'form-control'}),
-            'asignacion': forms.TextInput(attrs={'class': 'form-control'}),
-            'telefono': forms.TextInput(attrs={'class': 'form-control'}),
+            'asignacion': forms.Select(attrs={'class': 'form-control'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '912345678'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'direccion': forms.TextInput(attrs={'class': 'form-control'}),
-            'disponibilidad': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'estado': forms.TextInput(attrs={'class': 'form-control'}),
+            'disponibilidad': forms.Select(attrs={'class': 'form-control'}),
+            'estado': forms.Select(attrs={'class': 'form-control'}),
             'rol': forms.Select(attrs={'class': 'form-control'}),
         }
+
+    def clean_password(self):
+        return self.cleaned_data['password']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['rol'].initial = 'Administrador'
         self.fields['rol'].disabled = True
 
+    def save(self, commit=True):
+        # Creamos un nuevo usuario en el modelo CustomUser
+        user = CustomUser.objects.create_user(
+            email=self.cleaned_data['email'],
+            password=self.cleaned_data['password'],
+            nombre=self.cleaned_data['nombre'],
+            apellido=self.cleaned_data['apellido']
+        )
+
+        # Creamos el trabajador asociado con el usuario
+        trabajador = super().save(commit=False)
+        trabajador.user = user  # Asignamos el usuario al trabajador
+        if commit:
+            trabajador.save()  # Guardamos el trabajador en la base de datos
+
+        return trabajador
 
 # Formulario para el registro del supervisor por parte de un administrador
 
+
 class AdminSupervisorForm(forms.ModelForm):
+    # Añadimos el campo de contraseña como un campo adicional
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+
     class Meta:
         model = Supervisor
-        fields = ['rut', 'nombre', 'apellido', 'telefono',
-                  'direccion', 'disponibilidad', 'estado']
+        fields = ['rut', 'nombre', 'apellido', 'asignacion',
+                  'telefono', 'email', 'direccion', 'disponibilidad', 'estado', 'rol']
         widgets = {
-            'rut': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese RUT'}),
-            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese nombre'}),
-            'apellido': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese apellido'}),
-            'telefono': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese teléfono'}),
-            'direccion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese dirección'}),
+            'rut': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '12345678-9'}),
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'apellido': forms.TextInput(attrs={'class': 'form-control'}),
+            'asignacion': forms.Select(attrs={'class': 'form-control'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '912345678'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'direccion': forms.TextInput(attrs={'class': 'form-control'}),
             'disponibilidad': forms.Select(attrs={'class': 'form-control'}),
             'estado': forms.Select(attrs={'class': 'form-control'}),
+            'rol': forms.Select(attrs={'class': 'form-control'}),
         }
+
+    def clean_password(self):
+        return self.cleaned_data['password']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['rol'].initial = 'Supervisor'
+        self.fields['rol'].disabled = True
+
+    def save(self, commit=True):
+        # Creamos un nuevo usuario en el modelo CustomUser
+        user = CustomUser.objects.create_user(
+            email=self.cleaned_data['email'],
+            password=self.cleaned_data['password'],
+            nombre=self.cleaned_data['nombre'],
+            apellido=self.cleaned_data['apellido']
+        )
+
+        # Creamos el supervisor asociado con el usuario
+        supervisor = super().save(commit=False)
+        supervisor.user = user  # Asignamos el usuario al supervisor
+        if commit:
+            supervisor.save()  # Guardamos el supervisor en la base de datos
+
+        return supervisor
 
 # Formulario para registrar la cuenta
 
 
 class UserRegistrationForm(forms.ModelForm):
-    password = forms.CharField(widget=forms.PasswordInput)
+    password = forms.CharField(
+        widget=forms.PasswordInput, validators=[validate_password])
     password_confirm = forms.CharField(
         widget=forms.PasswordInput, label='Confirmar contraseña')
 
@@ -118,10 +176,10 @@ class DueñoForm(forms.ModelForm):
         model = Dueño
         fields = ['rut', 'nombre', 'apellido', 'telefono', 'direccion']
         widgets = {
-            'rut': forms.TextInput(attrs={'class': 'form-control'}),
+            'rut': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '12345678-9'}),
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
             'apellido': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
-            'telefono': forms.TextInput(attrs={'class': 'form-control'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '912345678'}),
             'direccion': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
@@ -240,7 +298,7 @@ class ProcesoForm(forms.ModelForm):
             'estado_proceso': forms.Select(attrs={'class': 'form-control'}),
             'prioridad': forms.Select(attrs={'class': 'form-control'}),
             'comentarios': forms.Textarea(attrs={'class': 'form-control', 'rows': '3'}),
-            'notificaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': '3'}),
+            'notificaciones': forms.Select(attrs={'class': 'form-control'}),
             'trabajador': forms.Select(attrs={'class': 'form-control'}),
             # cambiar el forms de notificaciones
         }

@@ -17,41 +17,21 @@ def create_groups(sender, **kwargs):
     from django.contrib.contenttypes.models import ContentType
     from miapp.models import CustomUser, Perfil, Dueño, Vehiculo, Servicio, Administrador, Supervisor, Trabajador, Notificacion, Proceso, Pago, Cita, Cotizacion, DetalleCotizacion
 
-    # Definir los grupos y permisos
     groups = {
-        'Dueños': {
-            'models': [Vehiculo, Proceso, Cotizacion, Cita, Pago],
-            'actions': ['view', 'add'],  # Consultar y registrar
-        },
-        'Clientes': {
-            'models': [Vehiculo, Proceso, Cotizacion, Cita, Pago],
-            'actions': ['view'],  # Consultar
-        },
-        'Administradores': {
-            'models': [Trabajador, Dueño, Proceso, Pago, Cotizacion, Cita],
-            'actions': ['view', 'add', 'change', 'delete'],
-        },
-        'Trabajadores': {
-            'models': [Proceso],
-            'actions': ['view', 'add'],  # Consultar y registrar procesos
-        },
-        'Supervisores': {
-            'models': [Proceso],
-            # Pueden ver y cambiar el estado de los procesos
-            'actions': ['view', 'change'],  # Pueden supervisar los procesos
-        }
+        'Dueños': {'models': [Vehiculo, Proceso, Cotizacion, Cita, Pago], 'actions': ['view', 'add']},
+        'Administradores': {'models': [Trabajador, Dueño, Proceso, Pago, Cotizacion, Cita], 'actions': ['view', 'add', 'change', 'delete']},
+        'Trabajadores': {'models': [Proceso], 'actions': ['view', 'add']},
+        'Supervisores': {'models': [Proceso], 'actions': ['view', 'change']},
     }
 
     for group_name, permissions_data in groups.items():
         group, created = Group.objects.get_or_create(name=group_name)
-
         for model in permissions_data['models']:
             content_type = ContentType.objects.get_for_model(model)
-
             for action in permissions_data['actions']:
-                permission = Permission.objects.get(
+                permission, _ = Permission.objects.get_or_create(
                     codename=f'{action}_{model._meta.model_name}',
-                    content_type=content_type
+                    content_type=content_type,
+                    name=f'Can {action} {model._meta.model_name}'
                 )
-                if not group.permissions.filter(pk=permission.pk).exists():
-                    group.permissions.add(permission)
+                group.permissions.add(permission)

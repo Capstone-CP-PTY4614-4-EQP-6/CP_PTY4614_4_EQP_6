@@ -13,23 +13,26 @@ if not firebase_admin._apps:
 
 logger = logging.getLogger(__name__)
 
+
 def reset_password(request):
     if request.method == "POST":
         email = request.POST.get("email")
         try:
             # Configurar ActionCodeSettings con una URL de continuación local
-            settings = auth.ActionCodeSettings(
-                url="http://localhost:8000/continue/",  # URL de continuación local
-                handle_code_in_app=True  # Manejar el código en la app
+            action_code_settings = auth.ActionCodeSettings(
+                url="http://localhost:8000/reset-password-complete/",
+                handle_code_in_app=True
             )
 
             # Generar enlace de restablecimiento de contraseña
-            reset_link = auth.generate_password_reset_link(email, settings)
-            
+            reset_link = auth.generate_password_reset_link(
+                email, action_code_settings)
+
             # Enviar correo electrónico con el enlace de restablecimiento
             send_mail(
                 subject="Restablecimiento de Contraseña",
-                message=f"Para restablecer tu contraseña, haz clic en el siguiente enlace: {reset_link}",
+                message=f"Para restablecer tu contraseña, haz clic en el siguiente enlace: {
+                    reset_link}",
                 from_email=settings.EMAIL_HOST_USER,
                 recipient_list=[email],
                 fail_silently=False,
@@ -39,9 +42,7 @@ def reset_password(request):
             return redirect("login")
         except Exception as e:
             logger.error(f'Error enviando el enlace de restablecimiento: {e}')
-            messages.error(request, f'Error enviando el enlace de restablecimiento: {str(e)}')
+            messages.error(
+                request, f'Error enviando el enlace de restablecimiento: {str(e)}')
 
     return render(request, "reset_password.html")
-
-
-

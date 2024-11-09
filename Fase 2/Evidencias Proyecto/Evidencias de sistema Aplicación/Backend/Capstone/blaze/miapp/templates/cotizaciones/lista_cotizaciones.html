@@ -4,7 +4,6 @@
   <table class="table table-bordered">
     <thead>
       <tr>
-        <th>ID</th>
         <th>Vehículo</th>
         <th>Estado</th>
         <th>Total Estimado</th>
@@ -15,7 +14,6 @@
     <tbody>
       {% for cotizacion in cotizaciones %}
       <tr>
-        <td>{{ cotizacion.id }}</td>
         <td>{{ cotizacion.vehiculo }}</td>
         <td>{{ cotizacion.estado }}</td>
         <td>{{ cotizacion.total_estimado }}</td>
