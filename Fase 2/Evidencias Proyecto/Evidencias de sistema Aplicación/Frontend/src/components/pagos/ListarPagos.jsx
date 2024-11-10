@@ -1,16 +1,57 @@
-import React from 'react';
-import { Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableRow, Typography, Button, Grid2 } from '@mui/material';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const ListaPagos = () => {
-  const pagos = [
-    { id: 1, monto: 100, metodo_pago: 'Tarjeta de crédito', fecha_pago: '2022-01-01', estado_pago: 'Pagado' },
-    { id: 2, monto: 200, metodo_pago: 'Transferencia bancaria', fecha_pago: '2022-01-15', estado_pago: 'Pagado' },
-    { id: 3, monto: 300, metodo_pago: 'Efectivo', fecha_pago: '2022-02-01', estado_pago: 'Pagado' },
-  ];
+  const [pagos, setPagos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchPagos = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/pagos/'); // URL de tu API
+        setPagos(response.data);
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPagos();
+  }, []);
+
+  const handleEdit = (id) => {
+    navigate(`/editar-pago/${id}`); // Redirigir a la página de edición del pago
+  };
+
+  const handleDelete = async (id) => {
+    const confirmDelete = window.confirm('¿Estás seguro de que deseas eliminar este pago?');
+    if (!confirmDelete) return;
+
+    try {
+      await axios.delete(`http://localhost:8000/api/pagos/${id}`); // Eliminar el pago desde la API
+      setPagos(pagos.filter(pago => pago.id !== id)); // Actualizar el estado local
+    } catch (error) {
+      setError(error.message);
+      alert('Ha habido un error al eliminar el pago');
+    }
+  };
+
+  if (loading) {
+    return <Typography variant="h6">Cargando...</Typography>;
+  }
+
+  if (error) {
+    return <Typography variant="body1" color="error">{error}</Typography>;
+  }
 
   return (
-    <Grid container>
-      <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
+    <Grid2 container>
+      <Grid2 item xs={12}>
         <Typography variant="h2">Lista de Pagos</Typography>
         <Table>
           <TableHead>
@@ -32,10 +73,10 @@ const ListaPagos = () => {
                 <TableCell>{pago.fecha_pago}</TableCell>
                 <TableCell>{pago.estado_pago}</TableCell>
                 <TableCell>
-                  <Button variant="contained" color="primary">
+                  <Button variant="contained" color="primary" onClick={() => handleEdit(pago.id)}>
                     Editar
                   </Button>
-                  <Button variant="contained" color="secondary">
+                  <Button variant="contained" color="secondary" onClick={() => handleDelete(pago.id)}>
                     Eliminar
                   </Button>
                 </TableCell>
@@ -43,8 +84,8 @@ const ListaPagos = () => {
             ))}
           </TableBody>
         </Table>
-      </Grid>
-    </Grid>
+      </Grid2>
+    </Grid2>
   );
 };
 

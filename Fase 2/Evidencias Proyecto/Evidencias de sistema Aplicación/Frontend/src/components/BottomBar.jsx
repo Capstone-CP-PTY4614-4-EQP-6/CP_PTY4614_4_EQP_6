@@ -7,12 +7,12 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import PaidIcon from '@mui/icons-material/Paid';
 import DirectionsCarFilledIcon from '@mui/icons-material/DirectionsCarFilled';
 import { Link } from 'react-router-dom';
-import CitasPage from '../pages/CitasPage';
-import CotizacionesPage from '../pages/CotizacionesPage';
+import citas from '../pages/CitasPage';
+import cotizaciones from '../pages/CotizacionesPage';
 import DueñosPage from '../pages/DueñosPage';
 import PagosPage from '../pages/PagosPage';
 import VehiculosPage from '../pages/VehiculosPage';
-import ReparacionesPage from '../pages/ReparacionesPage';
+import ProcesosPage from '../pages/ProcesosPage';
 
 
 
@@ -40,7 +40,7 @@ export default function LabelBottomNavigation() {
       <BottomNavigationAction
         label="Vehiculo"
         value="vehiculo"
-        href='/VehiculosPage'
+        href='/vehiculos'
         sx={{
           color: 'white',
           display: 'flex',
@@ -54,9 +54,9 @@ export default function LabelBottomNavigation() {
         icon={<DirectionsCarFilledIcon />}
       />
       <BottomNavigationAction
-        label="Reparaciones"
-        value="reparaciones"
-        href='/ReparacionesPage'
+        label="Procesos"
+        value="procesos"
+        href='/procesos'
         sx={{
           color: 'white',
           display: 'flex',
@@ -72,7 +72,7 @@ export default function LabelBottomNavigation() {
       <BottomNavigationAction
         label="Citas"
         value="citas"
-        href='/CitasComponent'
+        href='/citas'
         sx={{
           color: 'white',
           display: 'flex',
@@ -88,7 +88,7 @@ export default function LabelBottomNavigation() {
       <BottomNavigationAction
         label="Pagos"
         value="pagos"
-        href='/PagosPage'
+        href='/Pagos'
         sx={{
           color: 'white',
           display: 'flex',
