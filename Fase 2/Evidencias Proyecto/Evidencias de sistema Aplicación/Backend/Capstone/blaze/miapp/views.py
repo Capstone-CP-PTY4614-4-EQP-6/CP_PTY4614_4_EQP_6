@@ -30,11 +30,294 @@ from .models import CustomUserManager, CustomUser, Perfil, Dueño, Vehiculo, Ser
 from .forms import AdminCreationForm, AdminTrabajadorForm, AdminSupervisorForm, UserRegistrationForm, DueñoForm, VehiculoForm, CitaForm, ServicioForm, PagoForm, ProcesoForm, NotificacionForm, CotizacionForm, DetalleCotizacionForm
 from .utils import enviar_correo_confirmacion, confirmar_proceso
 from .firebase import reset_password
+from .serializers import CitaSerializer, VehiculoSerializer,TrabajadorSerializer, UserSerializer, UserRegistrationSerializer,ProcesoSerializer,PagoSerializer
+
+# Importaciones de Django REST Framework
+from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.http import JsonResponse
+from rest_framework import generics, status, permissions
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework_simplejwt.tokens  import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.views.decorators.csrf import csrf_protect, csrf_exempt
+from rest_framework.authentication import TokenAuthentication
 
 # Librerias
 import pandas as pd
 import mercadopago
 from openpyxl import Workbook
+
+#Vistas de la API#########################################################3
+
+# Vista del login
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def api_registrar_usuario(request):
+    if request.method == 'POST':
+        serializer = UserRegistrationSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            user = serializer.save()  # Guarda el nuevo usuario
+            # Verificar si ya existe un perfil para el usuario
+            perfil, created = Perfil.objects.get_or_create(user=user)
+            if created:
+                perfil.rol = 'Cliente'  # Asigna el rol 'Cliente'
+                perfil.save()
+
+            # Generar token JWT para el nuevo usuario
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+
+            # Retornar el token y el mensaje de éxito
+            return JsonResponse({
+                'message': 'Usuario registrado exitosamente.',
+                'token': access_token
+            }, status=status.HTTP_201_CREATED)
+
+        return JsonResponse({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    return JsonResponse({'error': 'Método no permitido.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+#LOgin
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])  # Permitir acceso anónimo para el login
+def login_view(request):
+    email = request.data.get('email')
+    password = request.data.get('password')
+    
+    user = authenticate(request, email=email, password=password)
+    if user is not None:
+        # Crear tokens para el usuario
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        })
+    else:
+        return Response({"detail": "Credenciales incorrectas."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+
+class CitaCreateAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = CitaSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ListaCitasAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "No autorizado"}, status=403)
+        
+        citas = Cita.objects.all()
+        serializer = CitaSerializer(citas, many=True)
+        return Response(serializer.data)
+    
+class EditarCitaAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Cita.objects.get(pk=pk)
+        except Cita.DoesNotExist:
+            return None
+
+    def get(self, request, pk, format=None):
+        cita = self.get_object(pk)
+        if cita is None:
+            return Response({'detail': 'Cita no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = CitaSerializer(cita)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk, format=None):
+        return self.update_cita(request, pk)
+
+    def put(self, request, pk, format=None):  # Agrega el método `put`
+        return self.update_cita(request, pk)
+
+    def update_cita(self, request, pk):
+        cita = self.get_object(pk)
+        if cita is None:
+            return Response({'detail': 'Cita no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not request.user.groups.filter(name__in=['Administrador', 'Supervisor']).exists():
+            cita.estado_cita = cita.estado_cita
+
+        serializer = CitaSerializer(cita, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
+    
+class VehiculoCreate(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = VehiculoSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class listarvehiculosAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "No autorizado"}, status=403)
+        
+        vehiculos = Vehiculo.objects.all()
+        serializer = VehiculoSerializer(vehiculos, many=True)
+        return Response(serializer.data)
+
+class EditarVehiculoAPI(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Vehiculo.objects.get(pk=pk)
+        except Vehiculo.DoesNotExist:
+            return None
+
+    def get(self, request, pk, format=None):
+        vehiculo = self.get_object(pk)
+        if vehiculo is None:
+            return Response({'detail': 'Vehículo no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = VehiculoSerializer(vehiculo)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk, format=None):
+        return self.update_vehiculo(request, pk)
+
+    def put(self, request, pk, format=None):
+        return self.update_vehiculo(request, pk)
+
+    def update_vehiculo(self, request, pk):
+        vehiculo = self.get_object(pk)
+        if vehiculo is None:
+            return Response({'detail': 'Vehículo no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Solo los administradores y supervisores pueden editar el estado del vehículo
+        if not request.user.groups.filter(name__in=['Administrador', 'Supervisor']).exists():
+            vehiculo.estado_vehiculo = vehiculo.estado_vehiculo
+
+        serializer = VehiculoSerializer(vehiculo, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
+
+
+class RegistrarProcesoAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProcesoSerializer
+    
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ListarProcesosAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "No autorizado"}, status=403)
+        
+        procesos = Proceso.objects.all()
+        serializer = ProcesoSerializer(procesos, many=True)
+        return Response(serializer.data)
+    
+class EditarProcesoAPI(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Proceso.objects.get(pk=pk)
+        except Proceso.DoesNotExist:
+            return None
+
+    def get(self, request, pk, format=None):
+        proceso = self.get_object(pk)
+        if proceso is None:
+            return Response({'detail': 'Proceso no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = ProcesoSerializer(proceso)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk, format=None):
+        return self.update_proceso(request, pk)
+
+    def put(self, request, pk, format=None):
+        return self.update_proceso(request, pk)
+
+    def update_proceso(self, request, pk):
+        proceso = self.get_object(pk)
+        if proceso is None:
+            return Response({'detail': 'Proceso no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProcesoSerializer(proceso, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class lista_trabajadoresAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "No autorizado"}, status=403)
+        
+        trabajadores = Trabajador.objects.all()
+        serializer = TrabajadorSerializer(trabajadores, many=True)
+        return Response(serializer.data)
+
+@permission_classes([IsAuthenticated])
+class PagoCreate(PermissionRequiredMixin, APIView):
+    permission_required = ['add_pago']
+    permission_classes = ['add_pago']
+    serializer_class = PagoSerializer
+
+    def post(self, request):
+        # Verifica si la solicitud es segura
+        if not request.META.get('HTTP_X_CSRFTOKEN'):
+            return Response({'error': 'CSRF token no proporcionado'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+##################################################################################
 
 
 # Usuario
