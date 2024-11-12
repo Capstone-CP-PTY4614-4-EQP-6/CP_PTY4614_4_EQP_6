@@ -224,7 +224,3 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> 1db123c63ffef8cc3dc23210382882e5234e26fa
