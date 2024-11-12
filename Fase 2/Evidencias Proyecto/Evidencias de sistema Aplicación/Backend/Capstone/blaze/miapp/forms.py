@@ -143,13 +143,6 @@ class UserRegistrationForm(forms.ModelForm):
             raise forms.ValidationError("Este correo ya está en uso.")
         return email
 
-    def clean_password(self):
-        password = self.cleaned_data.get("password")
-        if len(password) < 8 or not any(char.isdigit() for char in password):
-            raise forms.ValidationError(
-                "La contraseña debe tener al menos 8 caracteres y al menos un número.")
-        return password
-
     def clean(self):
         cleaned_data = super().clean()
         password = cleaned_data.get("password")
@@ -165,8 +158,9 @@ class UserRegistrationForm(forms.ModelForm):
         user.set_password(self.cleaned_data['password'])
         if commit:
             user.save()
-            perfil = Perfil(user=user, rol='Cliente')  # Rol predeterminado
+            perfil = Perfil(user=user, rol='Dueño')  # Rol predeterminado
             perfil.save()
+        return user
 
 
 # Formulario para el registro del dueño (cliente)
@@ -238,7 +232,7 @@ class CitaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field_name in self.fields:
             self.fields[field_name].label_suffix = ''
-        # Ocultar campo estado_cita si el usuario no es admin o supervisor
+
         if user and not user.groups.filter(name__in=['Administrador', 'Supervisor']).exists():
             self.fields['estado_cita'].widget = forms.HiddenInput()
 
@@ -251,11 +245,11 @@ class ServicioForm(forms.ModelForm):
         fields = ['nombre_servicio', 'descripcion',
                   'costo', 'duracion_estimada', 'garantia']
         widgets = {
-            'nombre_servicio': forms.TextInput(attrs={'class': 'form-control'}),
+            'nombre_servicio': forms.Select(attrs={'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control'}),
             'costo': forms.NumberInput(attrs={'class': 'form-control'}),
-            'duracion_estimada': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
-            'garantia': forms.TextInput(attrs={'class': 'form-control'}),
+            'duracion_estimada': forms.Select(attrs={'class': 'form-control'}),
+            'garantia': forms.Select(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -361,3 +355,20 @@ class DetalleCotizacionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field_name in self.fields:
             self.fields[field_name].label_suffix = ''
+
+
+class ReporteProcesosForm(forms.Form):
+    fecha_inicio = forms.DateField(
+        required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    fecha_fin = forms.DateField(
+        required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    fases = forms.ChoiceField(choices=[('iniciado', 'Iniciado'), ('en_progreso', 'En Progreso'), (
+        'finalizado', 'Finalizado')], required=False, widget=forms.CheckboxSelectMultiple)
+    estado = forms.ChoiceField(
+        choices=[('activo', 'Activo'), ('inactivo', 'Inactivo')], required=False)
+    incluir_inactivos = forms.BooleanField(required=False, initial=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['fases'].choices = [
+            (f.fase_proceso, f.fase_proceso) for f in Proceso.objects.all()]

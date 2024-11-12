@@ -38,31 +38,31 @@
           {{ trabajador.disponibilidad|yesno:"Disponible,No disponible" }}
         </td>
         <td>
+          {% if trabajador.id %}
           <a
-            href="{% url 'editar_trabajador' trabajador_id %}"
+            href="{% url 'editar_trabajador' trabajador.id %}"
             class="btn btn-sm btn-warning"
             >Editar</a
           >
           <a
-            href="{% url 'eliminar_trabajador' trabajador_id %}"
+            href="{% url 'eliminar_trabajador' trabajador.id %}"
             class="btn btn-sm btn-danger"
             onclick="return confirm('¿Estás seguro de que deseas eliminar a este trabajador?');"
+            >Eliminar</a
           >
-            Eliminar
-          </a>
-          {% if trabajador.bloqueado %}
+          {% endif %} {% if trabajador.id %} {% if trabajador.bloqueado %}
           <a
-            href="{% url 'desbloquear_trabajador' trabajador_id %}"
+            href="{% url 'desbloquear_trabajador' trabajador.id %}"
             class="btn btn-success btn-sm"
             >Desbloquear</a
           >
           {% else %}
           <a
-            href="{% url 'bloquear_trabajador' trabajador_id %}"
+            href="{% url 'bloquear_trabajador' trabajador.id %}"
             class="btn btn-secondary btn-sm"
             >Bloquear</a
           >
-          {% endif %}
+          {% endif %}{% endif %}
         </td>
       </tr>
       {% empty %}

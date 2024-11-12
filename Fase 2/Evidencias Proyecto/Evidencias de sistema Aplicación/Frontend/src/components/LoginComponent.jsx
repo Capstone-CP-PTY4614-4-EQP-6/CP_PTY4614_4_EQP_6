@@ -1,30 +1,56 @@
 import React, { useState } from 'react';
 import { Box, Typography, TextField, Button, Link } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
-const LoginComponent = () => {
-  const [username, setUsername] = useState('');
+const LoginPage = () => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
+    console.log("Intentando iniciar sesión...");
+  
     try {
-      const response = await axios.post('/api/login/', {
-        username,
+      const response = await axios.post('http://localhost:8000/api/login/', {
+        email,
         password,
       });
-
+  
+      console.log("Respuesta completa del servidor:", response.data);
+  
       if (response.status === 200) {
+        const accessToken = response.data.access;
+        const refreshToken = response.data.refresh;
+  
+        // Guardar los tokens en localStorage
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        localStorage.setItem('isAuthenticated', 'true');  // Añadir esta línea
+  
+        console.log("Inicio de sesión exitoso.");
+        console.log("Token JWT de acceso recibido:", accessToken);
+        console.log("Token JWT de refresco recibido:", refreshToken);
+  
         setSuccessMessage('Inicio de sesión exitoso');
         setErrorMessage('');
+  
+        // Redirigir a la página de inicio
+        navigate('/home');
+        console.log("Redirigiendo a la página de inicio...");
       }
     } catch (error) {
-      setErrorMessage('Nombre de usuario o contraseña incorrectos.');
+      if (error.response && error.response.status === 401) {
+        setErrorMessage('Credenciales incorrectas. Verifica tus datos e intenta nuevamente.');
+      } else {
+        setErrorMessage('Error al iniciar sesión. Intenta de nuevo más tarde.');
+      }
       setSuccessMessage('');
+      console.error("Error al iniciar sesión:", error.response ? error.response.data : error.message);
     }
   };
 
@@ -36,24 +62,20 @@ const LoginComponent = () => {
         alignItems: 'center',
         height: '100vh',
         width: '100vw',
-        backgroundColor: '#333', // Fondo gris oscuro
+        backgroundColor: '#333',
       }}
     >
       <Box
         sx={{
           width: '100%',
           maxWidth: 400,
-          backgroundColor: '#444', // Fondo del formulario
+          backgroundColor: '#444',
           borderRadius: 2,
           padding: 4,
           boxShadow: 3,
           color: '#fff',
         }}
       >
-        <Link href="/home" underline="none" sx={{ color: '#fff', display: 'inline-flex', alignItems: 'center' }} >
-          <ArrowBackIcon sx={{ fontSize: '1.2rem', mr: 1 }} />
-          Regresar al Inicio
-        </Link>
         <Typography variant="h4" gutterBottom>
           Iniciar Sesión
         </Typography>
@@ -74,13 +96,14 @@ const LoginComponent = () => {
             margin="normal"
             required
             fullWidth
-            id="username"
-            label="Nombre de usuario"
-            name="username"
-            autoComplete="username"
+            id="email"
+            label="Correo electrónico"
+            name="email"
+            type="email"
+            autoComplete="email"
             autoFocus
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             sx={{
               '& .MuiInputBase-input': {
                 padding: '10px',
@@ -127,11 +150,16 @@ const LoginComponent = () => {
           </Button>
         </Box>
         <Link href="/registro" underline="none" sx={{ color: '#fff' }}>
-          ¿No tienes cuenta? Regístrate aquí
+          ¿No tienes cuenta? Regístrate aquí.
         </Link>
+        <p>
+          <Link href="/" underline="none" sx={{ color: '#fff' }}>
+            Volver a la página principal
+          </Link>
+        </p>
       </Box>
     </Box>
   );
 };
 
-export default LoginComponent;
+export default LoginPage;

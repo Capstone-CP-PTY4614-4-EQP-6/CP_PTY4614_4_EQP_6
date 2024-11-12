@@ -77,39 +77,57 @@ class Perfil(models.Model):
 # Asignacion de grupos segun rol
 
 @receiver(post_save, sender=Perfil)
-def asignar_grupo_por_rol(sender, instance, created, **kwargs):
-    if created:
-        group = None
-        if instance.rol == 'administrador':
-            group = Group.objects.get(name='Administradores')
-        elif instance.rol == 'trabajador':
-            group = Group.objects.get(name='Trabajadores')
-        elif instance.rol == 'supervisor':
-            group = Group.objects.get(name='Supervisores')
-        elif instance.rol == 'dueño':
-            group = Group.objects.get(name='Dueños')
+def asignar_grupo_por_rol(usuario, rol):
+    # Obtener todos los grupos necesarios de una sola vez
+    grupos = Group.objects.filter(
+        name__in=['Administradores', 'Trabajadores', 'Supervisores', 'Dueños'])
 
-        if group:
-            instance.user.groups.add(group)
+    # Verificar si los grupos existen, si no se crean
+    grupos_existentes = {grupo.name: grupo for grupo in grupos}
+    nombres_grupos = ['Administradores',
+                      'Trabajadores', 'Supervisores', 'Dueños']
+
+    for nombre_grupo in nombres_grupos:
+        if nombre_grupo not in grupos_existentes:
+            grupo = Group.objects.create(name=nombre_grupo)
+            grupos_existentes[nombre_grupo] = grupo
+
+    # Asignar el grupo correspondiente según el rol
+    grupo_asignado = None
+    if rol == 'Administrador':
+        grupo_asignado = grupos_existentes['Administradores']
+    elif rol == 'Trabajador':
+        grupo_asignado = grupos_existentes['Trabajadores']
+    elif rol == 'Supervisor':
+        grupo_asignado = grupos_existentes['Supervisores']
+    elif rol == 'Dueño':
+        grupo_asignado = grupos_existentes['Dueños']
+    else:
+        raise ValueError("Rol no reconocido")
+
+    # Agregar el grupo al usuario
+    usuario.groups.add(grupo_asignado)
+    usuario.save()
 
 
 # Crear el perfil
 
 @receiver(post_save, sender=CustomUser)
-def crear_perfil_usuario(sender, instance, created, **kwargs):
+def manejar_perfil_usuario(sender, instance, created, **kwargs):
     if created:
+        # Si el usuario fue creado, se crea el perfil asociado
         Perfil.objects.get_or_create(user=instance)
-
-
-@receiver(post_save, sender=CustomUser)
-def guardar_perfil_usuario(sender, instance, **kwargs):
-    try:
-        perfil = Perfil.objects.get(user=instance)
-        print("El perfil ya existe y no se creará uno duplicado.")
-    except Perfil.DoesNotExist:
-        print("El perfil no existe y será creado.")
-        perfil = Perfil(user=instance)
-        perfil.save()
+        print("Perfil creado para el nuevo usuario.")
+    else:
+        try:
+            # Si el usuario ya existe, solo se asegura que el perfil esté actualizado
+            perfil = Perfil.objects.get(user=instance)
+            print("El perfil ya existe y está actualizado.")
+        except Perfil.DoesNotExist:
+            # Si el perfil no existe, se crea
+            perfil = Perfil(user=instance)
+            perfil.save()
+            print("Perfil creado para el usuario existente.")
 
 
 class Dueño(models.Model):
@@ -127,7 +145,7 @@ class Dueño(models.Model):
     direccion = models.TextField()
     perfil = models.ForeignKey(
         Perfil, on_delete=models.CASCADE, related_name='dueño', null=True)
-    rol = models.CharField(max_length=50, null=True, blank=True)
+    rol = models.CharField(max_length=50, default='Dueño', blank=False)
 
     def __str__(self):
         return f"{self.nombre} {self.apellido} ({self.rut}) - {self.rol}"
@@ -140,12 +158,26 @@ class Vehiculo(models.Model):
         # Validacion para año
         if self.año < 1886 or self.año > datetime.now().year:
             raise ValidationError(_('Año inválido para el vehículo.'))
+        self.validar_ano()
 
-        # Validacion para patente
-        regex_patente = r'^([A-Z]{2}\d{4}|[A-Z]{4}\d{2})$'
-        if not re.match(regex_patente, self.patente):
-            raise ValidationError(f"La patente {
-                                  self.patente} no es válida. Debe seguir el formato AB1234 o ABCD12.")
+    def validar_ano(self):
+        current_year = datetime.datetime.now().year
+        if self.year > current_year:
+            raise ValidationError(
+                {'year': 'El año del vehículo no puede ser mayor al año actual.'})
+
+        # Verificar que el año esté dentro de un rango razonable
+        if self.year < current_year - 100:
+            raise ValidationError(
+                {'year': 'El año del vehículo debe estar dentro de un rango razonable de tiempo.'})
+
+    def clean(self):
+        super().clean()
+        # Validar la patente
+        patente_regex = r'^[A-Z]{2}-\d{4}$|^\d{4}-[A-Z]{2}$'
+        if not re.match(patente_regex, self.patente):
+            raise ValidationError(
+                {'patente': 'Formato de patente inválido. Debe ser XX-1234 o 1234-XX.'})
 
         super().clean()
 
@@ -161,6 +193,12 @@ class Vehiculo(models.Model):
     tipo_combustible = models.CharField(max_length=50, choices=[
         ('bencina', 'Bencina'),
         ('diesel', 'Diésel'),
+        ('electrico', 'Electrico'),
+        ('etanol', 'Etanol'),
+        ('gas', 'Gas'),
+        ('hibrido', 'Híbrido'),
+        ('hidrogeno', 'Hidrógeno'),
+        ('otros', 'Otros'),
     ])
     fecha_ultima_revision = models.DateField()
     estado_vehiculo = models.CharField(max_length=100, choices=[
@@ -179,12 +217,36 @@ class Vehiculo(models.Model):
 
 
 class Servicio(models.Model):
+    SERVICIO_OPCIONES = [
+        ('Mantenimiento Preventivo', 'Mantenimiento Preventivo'),
+        ('Cambio de Aceite', 'Cambio de Aceite'),
+        ('Revisión de Frenos', 'Revisión de Frenos'),
+        ('Alineación y Balanceo', 'Alineación y Balanceo'),
+        ('Reparación de Motor', 'Reparación de Motor'),
+        ('Diagnóstico Eléctrico', 'Diagnóstico Eléctrico'),
+    ]
+
+    DURACION_OPCIONES = [
+        (30, '30 minutos'),
+        (60, '1 hora'),
+        (90, '1 hora y 30 minutos'),
+        (120, '2 horas'),
+    ]
+
+    GARANTIA_OPCIONES = [
+        ('1 mes', '1 mes'),
+        ('3 meses', '3 meses'),
+        ('6 meses', '6 meses'),
+        ('1 año', '1 año'),
+    ]
+
     id_servicio = models.AutoField(primary_key=True)
-    nombre_servicio = models.CharField(max_length=100)
+    nombre_servicio = models.CharField(
+        max_length=100, choices=SERVICIO_OPCIONES)
     descripcion = models.TextField()
     costo = models.DecimalField(max_digits=10, decimal_places=2)
-    duracion_estimada = models.IntegerField()
-    garantia = models.CharField(max_length=50)
+    duracion_estimada = models.IntegerField(choices=DURACION_OPCIONES)
+    garantia = models.CharField(max_length=50, choices=GARANTIA_OPCIONES)
 
     def __str__(self):
         return self.nombre_servicio

@@ -99,12 +99,14 @@
     <div class="col-md-4">
       <div class="card mb-4">
         <div class="card-body">
-          <h5 class="card-title">Pagos</h5>
-          <a href="{% url 'lista_pagos' %}" class="btn btn-primary"
-            >Consultar Pagos</a
+          <h5 class="card-title">Cotizaciones</h5>
+          <a href="{% url 'lista_cotizaciones' %}" class="btn btn-primary"
+            >Consultar cotizacion</a
           >
-          <a href="{% url 'registro_pago' %}" class="btn btn-success mt-2"
-            >Registrar Pago</a
+          <a
+            href="{% url 'registrar_cotizacion' %}"
+            class="btn btn-success mt-2"
+            >Registrar Cotizacion</a
           >
         </div>
       </div>
@@ -213,19 +215,6 @@
             href="{% url 'registrar_cotizacion' %}"
             class="btn btn-success mt-2"
             >Registrar Cotización</a
-          >
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card mb-4">
-        <div class="card-body">
-          <h5 class="card-title">Pagos</h5>
-          <a href="{% url 'lista_pagos' %}" class="btn btn-primary"
-            >Consultar Pagos</a
-          >
-          <a href="{% url 'registro_pago' %}" class="btn btn-success mt-2"
-            >Registrar Pago</a
           >
         </div>
       </div>

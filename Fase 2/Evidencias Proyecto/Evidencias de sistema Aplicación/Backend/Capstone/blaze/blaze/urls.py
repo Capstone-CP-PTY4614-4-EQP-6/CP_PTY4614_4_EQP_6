@@ -65,14 +65,15 @@ urlpatterns = [
     # Gestion de trabajadores
     path('trabajadores/', views.lista_trabajadores, name='lista_trabajadores'),
     path('trabajadores/crear/', views.crear_trabajador, name='crear_trabajador'),
-    path('trabajadores/editar/<int:id_trabajador>/',
+    path('trabajadores/editar/<int:trabajador_id>/',
          views.editar_trabajador, name='editar_trabajador'),
-    path('trabajadores/eliminar/<int:id_trabajador>/',
+    path('trabajadores/eliminar/<int:trabajador_id>/',
          views.eliminar_trabajador, name='eliminar_trabajador'),
-    path('trabajadores/bloquear/<int:id>/',
+    path('trabajadores/bloquear/<int:trabajador_id>/',
          views.bloquear_trabajador, name='bloquear_trabajador'),
-    path('trabajadores/desbloquear/<int:id>/',
+    path('trabajadores/desbloquear/<int:trabajador_id>/',
          views.desbloquear_trabajador, name='desbloquear_trabajador'),
+
 
     # Gestion de supervisores
     path('supervisores/', views.lista_supervisores, name='lista_supervisores'),
@@ -115,15 +116,10 @@ urlpatterns = [
          views.editar_cotizacion, name='editar_cotizacion'),
     path('cotizaciones/eliminar/<int:pk>/',
          views.eliminar_cotizacion, name='eliminar_cotizacion'),
-    path('pagar-cotizacion/<int:pk>/',
-         views.pagar_cotizacion, name='pagar_cotizacion'),
-    path('return_url/', views.return_url, name='return_url'),
-    path('final_url/', views.final_url, name='final_url'),
 
     # Ruta para mostrar los datos de procesos
-    path('procesos/', views.mostrar_procesos, name='mostrar_procesos'),
-
-    # Ruta para exportar los datos a Excel
-    path('exportar-datos/', views.exportar_datos, name='exportar_datos'),
+    path('configurar-reporte/', views.configurar_reporte_procesos,
+         name='configurar_reporte_procesos'),
+    path('exportar-reporte/', views.exportar_procesos, name='exportar_procesos'),
 
 ]

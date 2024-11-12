@@ -8,14 +8,14 @@ import Navbar from "../components/NavBar";
 
 function DueñosPage() {
     return (
-        <div>
+        <React.Fragment>
             <Navbar />
             <Typography variant="h1">Dueños</Typography>
             <BottomBar />
             <RegistrarDueño />
             <EditarDueño />
             <ListarDueños />
-        </div>
+        </React.Fragment>
     );
 }
 

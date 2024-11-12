@@ -1,47 +1,79 @@
 import React, { useState } from 'react';
-import { Box, Typography, TextField, Button, Link } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Box, Typography, TextField, Button, Snackbar, Alert, Link } from '@mui/material';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const RegisterPage = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: '',
+    nombre: '',
+    apellido: '',
+    password: '',
+  });
+  const [errorMessages, setErrorMessages] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
+  const [openSnackbar, setOpenSnackbar] = useState(false);
 
-  const handleRegister = async (e) => {
+  const handleChange = (e) => {
+    
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (password !== passwordConfirm) {
-      setErrorMessage('Las contraseñas no coinciden');
-      return;
-    }
+    setErrorMessages([]); // Resetear mensajes de error
+    console.log('Submitting form with data:', formData);
 
     try {
-      const response = await axios.post('/api/registro/', {
-        username,
-        password,
-        password_confirm: passwordConfirm,
-      });
+      const response = await axios.post('http://localhost:8000/api/register/', formData);
+      console.log('Response from server:', response);
 
       if (response.status === 201) {
-        setSuccessMessage('Usuario registrado exitosamente');
-        setErrorMessage('');
+        const { token } = response.data;  // Assuming the token is in response.data
+        console.log('Registration successful. Token received:', token);
+
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('username', formData.nombre);
+
+        setSuccessMessage('Usuario registrado exitosamente.');
+        setOpenSnackbar(true);
+        
+        setFormData({
+          email: '',
+          nombre: '',
+          apellido: '',
+          password: '',
+        });
+
+        console.log('Redirecting to login page...');
+        navigate('/login');
       }
     } catch (error) {
-      setErrorMessage('Error al registrar el usuario. Verifica los datos e intenta nuevamente.');
-      setSuccessMessage('');
+      console.log('Error during registration:', error);
+      if (error.response && error.response.data) {
+        console.log('Error details from server:', error.response.data);
+        setErrorMessages(Object.values(error.response.data).flat());
+      } else {
+        console.log('An unknown error occurred.');
+        setErrorMessages(['Ocurrió un error desconocido.']);
+      }
     }
+  };
+
+  const handleCloseSnackbar = () => {
+    console.log('Closing success snackbar');
+    setOpenSnackbar(false);
   };
 
   return (
     <Box
       sx={{
         display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        Height: '100vh',
+        height: '100vh',
         width: '100vw',
         backgroundColor: '#333',
       }}
@@ -57,37 +89,73 @@ const RegisterPage = () => {
           color: '#fff',
         }}
       >
-        <Link href="/home" underline="none" sx={{ color: '#fff', display: 'inline-flex', alignItems: 'center' }} >
-          <ArrowBackIcon sx={{ fontSize: '1.2rem', mr: 1 }} />
-          Regresar al Inicio
-        </Link>
         <Typography variant="h4" gutterBottom>
           Registrar Usuario
         </Typography>
 
-        {errorMessage && (
-          <Typography variant="body1" color="error" sx={{ mt: 2 }}>
-            {errorMessage}
-          </Typography>
-        )}
-        {successMessage && (
-          <Typography variant="body1" color="success" sx={{ mt: 2 }}>
-            {successMessage}
-          </Typography>
+        {errorMessages.length > 0 && (
+          <Box sx={{ mb: 2 }}>
+            {errorMessages.map((error, index) => (
+              <Alert key={index} severity="error">
+                {error}
+              </Alert>
+            ))}
+          </Box>
         )}
 
-        <Box component="form" noValidate onSubmit={handleRegister}>
+        {successMessage && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {successMessage}
+          </Alert>
+        )}
+
+        <Box component="form" noValidate onSubmit={handleSubmit}>
           <TextField
             margin="normal"
             required
             fullWidth
-            id="username"
-            label="Nombre de Usuario"
-            name="username"
-            autoComplete="username"
-            autoFocus
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            id="nombre"
+            label="Nombre"
+            name="nombre"
+            value={formData.nombre}
+            onChange={handleChange}
+            sx={{
+              '& .MuiInputBase-input': {
+                padding: '10px',
+              },
+              '& label': {
+                color: '#fff',
+              },
+            }}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="apellido"
+            label="Apellido"
+            name="apellido"
+            value={formData.apellido}
+            onChange={handleChange}
+            sx={{
+              '& .MuiInputBase-input': {
+                padding: '10px',
+              },
+              '& label': {
+                color: '#fff',
+              },
+            }}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="email"
+            label="Correo electrónico"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
             sx={{
               '& .MuiInputBase-input': {
                 padding: '10px',
@@ -105,28 +173,8 @@ const RegisterPage = () => {
             label="Contraseña"
             type="password"
             id="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            sx={{
-              '& .MuiInputBase-input': {
-                padding: '10px',
-              },
-              '& label': {
-                color: '#fff',
-              },
-            }}
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="passwordConfirm"
-            label="Confirmar Contraseña"
-            type="password"
-            id="passwordConfirm"
-            value={passwordConfirm}
-            onChange={(e) => setPasswordConfirm(e.target.value)}
+            value={formData.password}
+            onChange={handleChange}
             sx={{
               '& .MuiInputBase-input': {
                 padding: '10px',
@@ -149,13 +197,25 @@ const RegisterPage = () => {
               },
             }}
           >
-            Registrar Usuario
+            Registrar
           </Button>
         </Box>
+
         <Link href="/login" underline="none" sx={{ color: '#fff' }}>
-          ¿Ya tienes cuenta? Inicia sesión aquí
+          ¿Ya tienes una cuenta? Inicia sesión aquí.
         </Link>
+        <p>
+          <Link href="/" underline="none" sx={{ color: '#fff' }}>
+            Volver a la página principal
+          </Link>
+        </p>
       </Box>
+
+      <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+        <Alert onClose={handleCloseSnackbar} severity="success">
+          Usuario registrado exitosamente.
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

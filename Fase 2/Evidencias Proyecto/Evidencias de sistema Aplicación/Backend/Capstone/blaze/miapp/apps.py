@@ -19,7 +19,7 @@ def create_groups(sender, **kwargs):
 
     groups = {
         'Dueños': {'models': [Vehiculo, Proceso, Cotizacion, Cita, Pago], 'actions': ['view', 'add']},
-        'Administradores': {'models': [Trabajador, Dueño, Proceso, Pago, Cotizacion, Cita], 'actions': ['view', 'add', 'change', 'delete']},
+        'Administradores': {'models': [Trabajador, Dueño, Supervisor, Proceso, Pago, Cotizacion, Cita], 'actions': ['view', 'add', 'change', 'delete']},
         'Trabajadores': {'models': [Proceso], 'actions': ['view', 'add']},
         'Supervisores': {'models': [Proceso], 'actions': ['view', 'change']},
     }

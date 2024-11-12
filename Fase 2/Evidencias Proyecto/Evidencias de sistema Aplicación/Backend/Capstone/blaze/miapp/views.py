@@ -27,17 +27,608 @@ from django.conf import settings
 
 # Importaciones de la aplicación
 from .models import CustomUserManager, CustomUser, Perfil, Dueño, Vehiculo, Servicio, Administrador, Supervisor, Trabajador, Notificacion, Proceso, Pago, Cita, Cotizacion, DetalleCotizacion
-from .forms import AdminCreationForm, AdminTrabajadorForm, AdminSupervisorForm, UserRegistrationForm, DueñoForm, VehiculoForm, CitaForm, ServicioForm, PagoForm, ProcesoForm, NotificacionForm, CotizacionForm, DetalleCotizacionForm
+from .forms import AdminCreationForm, AdminTrabajadorForm, AdminSupervisorForm, UserRegistrationForm, DueñoForm, VehiculoForm, CitaForm, ServicioForm, PagoForm, ProcesoForm, NotificacionForm, CotizacionForm, DetalleCotizacionForm, ReporteProcesosForm
 from .utils import enviar_correo_confirmacion, confirmar_proceso
 from .firebase import reset_password
+<<<<<<< HEAD
+from .serializers import CitaSerializer, VehiculoSerializer, TrabajadorSerializer, UserSerializer, UserRegistrationSerializer, ProcesoSerializer, PagoSerializer
+=======
+from .serializers import CitaSerializer, VehiculoSerializer,TrabajadorSerializer, UserSerializer, UserRegistrationSerializer,ProcesoSerializer,PagoSerializer
+>>>>>>> 1db123c63ffef8cc3dc23210382882e5234e26fa
+
+# Importaciones de Django REST Framework
+from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.http import JsonResponse
+from rest_framework import generics, status, permissions
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
+<<<<<<< HEAD
+from rest_framework_simplejwt.tokens import RefreshToken
+=======
+from rest_framework_simplejwt.tokens  import RefreshToken
+>>>>>>> 1db123c63ffef8cc3dc23210382882e5234e26fa
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.views.decorators.csrf import csrf_protect, csrf_exempt
+from rest_framework.authentication import TokenAuthentication
 
 # Librerias
 import pandas as pd
 import mercadopago
 from openpyxl import Workbook
+from functools import wraps
+
+# Vistas de la API
+
+# Vista del login
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def api_registrar_usuario(request):
+    serializer = UserRegistrationSerializer(data=request.data)
+
+    if serializer.is_valid():
+        user = serializer.save()
+        perfil, created = Perfil.objects.get_or_create(user=user)
+        if created:
+            perfil.rol = 'Cliente'
+            perfil.save()
+
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+
+        return JsonResponse({
+            'message': 'Usuario registrado exitosamente.',
+            'token': access_token
+        }, status=status.HTTP_201_CREATED)
+
+    return JsonResponse({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Login
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def login_view(request):
+    email = request.data.get('email')
+    password = request.data.get('password')
+
+    user = authenticate(request, email=email, password=password)
+    if user:
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        })
+    else:
+        return Response({"detail": "Credenciales incorrectas."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class CitaCreateAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = CitaSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ListaCitasAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        citas = Cita.objects.filter(user=request.user)
+        serializer = CitaSerializer(citas, many=True)
+        return Response(serializer.data)
+
+
+class EditarCitaAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Cita.objects.get(pk=pk)
+        except Cita.DoesNotExist:
+            return None
+
+    def get(self, request, pk, format=None):
+        cita = self.get_object(pk)
+        if cita is None:
+            return Response({'detail': 'Cita no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = CitaSerializer(cita)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk, format=None):
+        return self.update_cita(request, pk)
+
+    def put(self, request, pk, format=None):  # Agrega el método `put`
+        return self.update_cita(request, pk)
+
+    def update_cita(self, request, pk):
+        cita = self.get_object(pk)
+        if cita is None:
+            return Response({'detail': 'Cita no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not request.user.groups.filter(name__in=['Administrador', 'Supervisor']).exists():
+            cita.estado_cita = cita.estado_cita
+
+        serializer = CitaSerializer(cita, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VehiculoCreate(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = VehiculoSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class listarvehiculosAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "No autorizado"}, status=403)
+
+        vehiculos = Vehiculo.objects.all()
+        serializer = VehiculoSerializer(vehiculos, many=True)
+        return Response(serializer.data)
+
+
+class EditarVehiculoAPI(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Vehiculo.objects.get(pk=pk)
+        except Vehiculo.DoesNotExist:
+            return None
+
+    def get(self, request, pk, format=None):
+        vehiculo = self.get_object(pk)
+        if vehiculo is None:
+            return Response({'detail': 'Vehículo no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = VehiculoSerializer(vehiculo)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk, format=None):
+        return self.update_vehiculo(request, pk)
+
+    def put(self, request, pk, format=None):
+        return self.update_vehiculo(request, pk)
+
+    def update_vehiculo(self, request, pk):
+        vehiculo = self.get_object(pk)
+        if vehiculo is None:
+            return Response({'detail': 'Vehículo no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Solo los administradores y supervisores pueden editar el estado del vehículo
+        if not request.user.groups.filter(name__in=['Administrador', 'Supervisor']).exists():
+            vehiculo.estado_vehiculo = vehiculo.estado_vehiculo
+
+        serializer = VehiculoSerializer(
+            vehiculo, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class RegistrarProcesoAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProcesoSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ListarProcesosAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "No autorizado"}, status=403)
+
+        procesos = Proceso.objects.all()
+        serializer = ProcesoSerializer(procesos, many=True)
+        return Response(serializer.data)
+
+
+class EditarProcesoAPI(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Proceso.objects.get(pk=pk)
+        except Proceso.DoesNotExist:
+            return None
+
+    def get(self, request, pk, format=None):
+        proceso = self.get_object(pk)
+        if proceso is None:
+            return Response({'detail': 'Proceso no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProcesoSerializer(proceso)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk, format=None):
+        return self.update_proceso(request, pk)
+
+    def put(self, request, pk, format=None):
+        return self.update_proceso(request, pk)
+
+    def update_proceso(self, request, pk):
+        proceso = self.get_object(pk)
+        if proceso is None:
+            return Response({'detail': 'Proceso no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProcesoSerializer(
+            proceso, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class lista_trabajadoresAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "No autorizado"}, status=403)
+
+        trabajadores = Trabajador.objects.all()
+        serializer = TrabajadorSerializer(trabajadores, many=True)
+        return Response(serializer.data)
+
+
+@permission_classes([IsAuthenticated])
+class PagoCreate(PermissionRequiredMixin, APIView):
+    permission_required = ['add_pago']
+    permission_classes = ['add_pago']
+    serializer_class = PagoSerializer
+
+    def post(self, request):
+        # Verifica si la solicitud es segura
+        if not request.META.get('HTTP_X_CSRFTOKEN'):
+            return Response({'error': 'CSRF token no proporcionado'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+##################################################################################
+
+# Verificar tokens
+
+def verificar_token_firebase(token):
+    try:
+        decoded_token = auth.verify_id_token(token)
+        return decoded_token  # Devuelve información sobre el usuario autenticado
+    except Exception as e:
+        print(f"Error al verificar el token de Firebase: {e}")
+        return None
+
+
+def firebase_login_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return JsonResponse({'error': 'Token de autenticación no proporcionado'}, status=401)
+
+        token = auth_header.split(' ')[1]
+        decoded_token = verificar_token_firebase(token)
+        if decoded_token:
+            user_id = decoded_token['uid']
+            user, created = User.objects.get_or_create(username=user_id)
+            request.user = user
+            return view_func(request, *args, **kwargs)
+        else:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+    return _wrapped_view
+
+#Vistas de la API#########################################################3
+
+# Vista del login
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def api_registrar_usuario(request):
+    if request.method == 'POST':
+        serializer = UserRegistrationSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            user = serializer.save()  # Guarda el nuevo usuario
+            # Verificar si ya existe un perfil para el usuario
+            perfil, created = Perfil.objects.get_or_create(user=user)
+            if created:
+                perfil.rol = 'Cliente'  # Asigna el rol 'Cliente'
+                perfil.save()
+
+            # Generar token JWT para el nuevo usuario
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+
+            # Retornar el token y el mensaje de éxito
+            return JsonResponse({
+                'message': 'Usuario registrado exitosamente.',
+                'token': access_token
+            }, status=status.HTTP_201_CREATED)
+
+        return JsonResponse({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    return JsonResponse({'error': 'Método no permitido.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+#LOgin
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])  # Permitir acceso anónimo para el login
+def login_view(request):
+    email = request.data.get('email')
+    password = request.data.get('password')
+    
+    user = authenticate(request, email=email, password=password)
+    if user is not None:
+        # Crear tokens para el usuario
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        })
+    else:
+        return Response({"detail": "Credenciales incorrectas."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+
+class CitaCreateAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = CitaSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ListaCitasAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "No autorizado"}, status=403)
+        
+        citas = Cita.objects.all()
+        serializer = CitaSerializer(citas, many=True)
+        return Response(serializer.data)
+    
+class EditarCitaAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Cita.objects.get(pk=pk)
+        except Cita.DoesNotExist:
+            return None
+
+    def get(self, request, pk, format=None):
+        cita = self.get_object(pk)
+        if cita is None:
+            return Response({'detail': 'Cita no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = CitaSerializer(cita)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk, format=None):
+        return self.update_cita(request, pk)
+
+    def put(self, request, pk, format=None):  # Agrega el método `put`
+        return self.update_cita(request, pk)
+
+    def update_cita(self, request, pk):
+        cita = self.get_object(pk)
+        if cita is None:
+            return Response({'detail': 'Cita no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not request.user.groups.filter(name__in=['Administrador', 'Supervisor']).exists():
+            cita.estado_cita = cita.estado_cita
+
+        serializer = CitaSerializer(cita, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
+    
+class VehiculoCreate(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = VehiculoSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class listarvehiculosAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "No autorizado"}, status=403)
+        
+        vehiculos = Vehiculo.objects.all()
+        serializer = VehiculoSerializer(vehiculos, many=True)
+        return Response(serializer.data)
+
+class EditarVehiculoAPI(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Vehiculo.objects.get(pk=pk)
+        except Vehiculo.DoesNotExist:
+            return None
+
+    def get(self, request, pk, format=None):
+        vehiculo = self.get_object(pk)
+        if vehiculo is None:
+            return Response({'detail': 'Vehículo no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = VehiculoSerializer(vehiculo)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk, format=None):
+        return self.update_vehiculo(request, pk)
+
+    def put(self, request, pk, format=None):
+        return self.update_vehiculo(request, pk)
+
+    def update_vehiculo(self, request, pk):
+        vehiculo = self.get_object(pk)
+        if vehiculo is None:
+            return Response({'detail': 'Vehículo no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Solo los administradores y supervisores pueden editar el estado del vehículo
+        if not request.user.groups.filter(name__in=['Administrador', 'Supervisor']).exists():
+            vehiculo.estado_vehiculo = vehiculo.estado_vehiculo
+
+        serializer = VehiculoSerializer(vehiculo, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
+
+
+class RegistrarProcesoAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProcesoSerializer
+    
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ListarProcesosAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "No autorizado"}, status=403)
+        
+        procesos = Proceso.objects.all()
+        serializer = ProcesoSerializer(procesos, many=True)
+        return Response(serializer.data)
+    
+class EditarProcesoAPI(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Proceso.objects.get(pk=pk)
+        except Proceso.DoesNotExist:
+            return None
+
+    def get(self, request, pk, format=None):
+        proceso = self.get_object(pk)
+        if proceso is None:
+            return Response({'detail': 'Proceso no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = ProcesoSerializer(proceso)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk, format=None):
+        return self.update_proceso(request, pk)
+
+    def put(self, request, pk, format=None):
+        return self.update_proceso(request, pk)
+
+    def update_proceso(self, request, pk):
+        proceso = self.get_object(pk)
+        if proceso is None:
+            return Response({'detail': 'Proceso no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ProcesoSerializer(proceso, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class lista_trabajadoresAPI(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"detail": "No autorizado"}, status=403)
+        
+        trabajadores = Trabajador.objects.all()
+        serializer = TrabajadorSerializer(trabajadores, many=True)
+        return Response(serializer.data)
+
+@permission_classes([IsAuthenticated])
+class PagoCreate(PermissionRequiredMixin, APIView):
+    permission_required = ['add_pago']
+    permission_classes = ['add_pago']
+    serializer_class = PagoSerializer
+
+    def post(self, request):
+        # Verifica si la solicitud es segura
+        if not request.META.get('HTTP_X_CSRFTOKEN'):
+            return Response({'error': 'CSRF token no proporcionado'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+##################################################################################
 
 
 # Usuario
+
 
 CustomUser = get_user_model()
 
@@ -51,21 +642,34 @@ def superadmin_required(view_func):
     return decorated_view_func
 
 
-@login_required
-@superadmin_required
+@ firebase_login_required
+@ superadmin_required
 def create_admin(request):
     if request.method == 'POST':
-        form = AdminCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.is_admin = True
-            user.save()
-            messages.success(request, 'Administrador creado con éxito')
-            return redirect('inicio')
-    else:
-        form = AdminCreationForm()
-    return render(request, 'create_admin.html', {'form': form})
+        email = request.POST['email']
+        password = request.POST['password']
 
+        try:
+            # Crear usuario en Firebase
+            user_firebase = crear_usuario(email, password)
+
+            # Crear perfil de usuario en Django y asociarlo con el ID de Firebase
+            perfil_usuario = Perfil.objects.create(
+                user_firebase_id=user_firebase.uid,
+                email=email,
+                rol='Admin'
+            )
+
+            messages.success(request, f'Usuario {email} creado exitosamente.')
+            # Redirigir al dashboard de admin o la vista que desees
+            return redirect('admin_dashboard')
+
+        except ValueError as e:
+            messages.error(request, f'Error al crear el usuario: {str(e)}')
+            # Asegúrate de tener el template adecuado
+            return render(request, 'crear_admin.html')
+
+    return render(request, 'crear_admin.html')
 
 # Notificaciones
 
@@ -152,16 +756,14 @@ def login_view(request):
         if user is not None:
             login(request, user)
             messages.success(request, f"Bienvenido {user.nombre}!")
-
-            # Redirección según el rol del usuario
             if user.perfil.rol == 'Administrador':
-                return redirect('inicio')
+                return redirect('admin')
             elif user.perfil.rol == 'Dueño':
-                return redirect('inicio')
+                return redirect('dueño')
             elif user.perfil.rol == 'Supervisor':
-                return redirect('inicio')
+                return redirect('supervisor')
             elif user.perfil.rol == 'Trabajador':
-                return redirect('inicio')
+                return redirect('trabajador')
             else:
                 return redirect('inicio')
         else:
@@ -172,7 +774,7 @@ def login_view(request):
 # Vista para la creacion de trabajadores (solo accesible por administradores)
 
 
-@ login_required
+@ firebase_login_required
 @ perfil_requerido
 @ user_passes_test(es_admin)
 def crear_trabajador(request):
@@ -212,7 +814,7 @@ def crear_trabajador(request):
     return render(request, 'trabajadores/crear_trabajador.html', {'form': form})
 
 
-@ login_required
+@ firebase_login_required
 @ perfil_requerido
 @user_passes_test(es_admin)
 def lista_trabajadores(request):
@@ -224,7 +826,7 @@ def lista_trabajadores(request):
     return render(request, 'trabajadores/lista_trabajadores.html', {'trabajadores': trabajadores})
 
 
-@login_required
+@ firebase_login_required
 @ perfil_requerido
 @user_passes_test(es_admin)
 def editar_trabajador(request, trabajador_id):
@@ -246,7 +848,7 @@ def editar_trabajador(request, trabajador_id):
     return render(request, 'trabajadores/editar_trabajador.html', {'form': form})
 
 
-@login_required
+@ firebase_login_required
 @ perfil_requerido
 @user_passes_test(es_admin)
 def eliminar_trabajador(request, trabajador_id):
@@ -267,7 +869,7 @@ def eliminar_trabajador(request, trabajador_id):
     return render(request, 'trabajadores/eliminar_trabajador.html', {'trabajador': trabajador})
 
 
-@login_required
+@ firebase_login_required
 @ perfil_requerido
 @user_passes_test(es_admin)
 def bloquear_trabajador(request, trabajador_id):
@@ -277,7 +879,7 @@ def bloquear_trabajador(request, trabajador_id):
     return redirect('lista_trabajadores')
 
 
-@login_required
+@ firebase_login_required
 @ perfil_requerido
 @user_passes_test(es_admin)
 def desbloquear_trabajador(request, trabajador_id):
@@ -289,7 +891,7 @@ def desbloquear_trabajador(request, trabajador_id):
 # Vista para gestionar los supervisores (solo accesible por administradores)
 
 
-@login_required
+@ firebase_login_required
 @perfil_requerido
 @user_passes_test(es_admin)
 def lista_supervisores(request):
@@ -300,7 +902,7 @@ def lista_supervisores(request):
     return render(request, 'supervisores/lista_supervisores.html', {'supervisores': supervisores})
 
 
-@login_required
+@ firebase_login_required
 @ perfil_requerido
 @user_passes_test(es_admin)
 def crear_supervisor(request):
@@ -326,7 +928,7 @@ def crear_supervisor(request):
     return render(request, 'supervisores/crear_supervisor.html', {'form': form})
 
 
-@login_required
+@ firebase_login_required
 @ perfil_requerido
 @user_passes_test(es_admin)
 def editar_supervisor(request, supervisor_id):
@@ -347,7 +949,7 @@ def editar_supervisor(request, supervisor_id):
     return render(request, 'supervisores/editar_supervisor.html', {'form': form, 'supervisor': supervisor})
 
 
-@login_required
+@ firebase_login_required
 @ perfil_requerido
 @user_passes_test(es_admin)
 def eliminar_supervisor(request, supervisor_id):
@@ -367,7 +969,7 @@ def eliminar_supervisor(request, supervisor_id):
     return render(request, 'supervisores/eliminar_supervisor.html', {'supervisor': supervisor})
 
 
-@login_required
+@ firebase_login_required
 @user_passes_test(es_admin)
 def bloquear_supervisor(request, supervisor_id):
     supervisor = get_object_or_404(Supervisor, id=supervisor_id)
@@ -384,7 +986,7 @@ def bloquear_supervisor(request, supervisor_id):
     return redirect('lista_supervisores')
 
 
-@login_required
+@ firebase_login_required
 @user_passes_test(es_admin)
 def desbloquear_supervisor(request, supervisor_id):
     supervisor = get_object_or_404(Supervisor, id=supervisor_id)
@@ -403,7 +1005,7 @@ def desbloquear_supervisor(request, supervisor_id):
 # Mi cuenta
 
 
-@login_required
+@ firebase_login_required
 def mi_cuenta(request):
     user = request.user
     perfil = None
@@ -491,13 +1093,13 @@ def registrar_usuario(request):
 
 # Gestión de Clientes
 
-@ login_required
+@ firebase_login_required
 def lista_dueños(request):
     dueños = Dueño.objects.all()
     return render(request, 'dueños/lista_dueños.html', {'dueños': dueños})
 
 
-@login_required
+@ firebase_login_required
 def registrar_dueño(request):
 
     if request.method == 'POST':
@@ -529,7 +1131,7 @@ def registrar_dueño(request):
     return render(request, 'dueños/registrar_dueño.html', {'form': form})
 
 
-@login_required
+@ firebase_login_required
 def editar_dueño(request, id):
     dueño = get_object_or_404(Dueño, id=id)
     if request.method == 'POST':
@@ -543,7 +1145,7 @@ def editar_dueño(request, id):
     return render(request, 'dueños/editar_dueño.html', {'form': form, 'dueño': dueño})
 
 
-@login_required
+@ firebase_login_required
 @user_passes_test(es_admin)
 def eliminar_dueño(request, dueño_id):
     dueño = get_object_or_404(Dueño, id=dueño_id)
@@ -557,7 +1159,7 @@ def eliminar_dueño(request, dueño_id):
     return render(request, 'dueños/eliminar_dueño.html', {'dueño': dueño})
 
 
-@login_required
+@ firebase_login_required
 @user_passes_test(es_admin)
 def bloquear_dueño(request, dueño_id):
     dueño = get_object_or_404(Dueño, id=dueño_id)
@@ -566,7 +1168,7 @@ def bloquear_dueño(request, dueño_id):
     return redirect('lista_dueños')
 
 
-@login_required
+@ firebase_login_required
 @user_passes_test(es_admin)
 def desbloquear_dueño(request, dueño_id):
     dueño = get_object_or_404(Dueño, id=dueño_id)
@@ -577,7 +1179,7 @@ def desbloquear_dueño(request, dueño_id):
 # Gestión de Vehículos
 
 
-@login_required
+@ firebase_login_required
 def lista_vehiculos(request):
     try:
         dueño = request.user.dueño
@@ -600,12 +1202,12 @@ def lista_vehiculos(request):
     })
 
 
-@ login_required
+@ firebase_login_required
 def registrar_vehiculo(request):
-    if not (request.user.groups.filter(name='dueños').exists() or
-            request.user.groups.filter(name='administradores').exists() or
-            request.user.groups.filter(name='trabajadores').exists() or
-            request.user.groups.filter(name='supervisores').exists()):
+    if not (request.user.groups.filter(name='Dueños').exists() or
+            request.user.groups.filter(name='Administradores').exists() or
+            request.user.groups.filter(name='Trabajadores').exists() or
+            request.user.groups.filter(name='Supervisores').exists()):
         messages.error(request, 'No tiene permisos para registrar vehículos')
         return redirect('inicio')
 
@@ -625,7 +1227,7 @@ def registrar_vehiculo(request):
     return render(request, 'vehiculos/registrar_vehiculo.html', {'form': form})
 
 
-@ login_required
+@ firebase_login_required
 def editar_vehiculo(request, pk):
     vehiculo = get_object_or_404(Vehiculo, pk=pk)
 
@@ -645,7 +1247,7 @@ def editar_vehiculo(request, pk):
     return render(request, 'vehiculos/editar_vehiculo.html', {'form': form, 'vehiculo': vehiculo})
 
 
-@login_required
+@ firebase_login_required
 def eliminar_vehiculo(request, vehiculo_id):
     vehiculo = get_object_or_404(Vehiculo, id=vehiculo_id)
 
@@ -661,7 +1263,7 @@ def eliminar_vehiculo(request, vehiculo_id):
 
 # Gestión de Reparaciones
 
-@ login_required
+@ firebase_login_required
 def lista_procesos(request):
     procesos = Proceso.objects.all()
     return render(request, 'procesos/lista_procesos.html', {'procesos': procesos})
@@ -669,7 +1271,7 @@ def lista_procesos(request):
 
 # Registrar proceso asociado a una reparacion
 
-@login_required
+@ firebase_login_required
 @user_passes_test(es_admin)
 def registrar_proceso(request):
     if request.method == 'POST':
@@ -711,7 +1313,7 @@ def registrar_proceso(request):
 # Editar proceso de reparacion
 
 
-@ login_required
+@ firebase_login_required
 @ user_passes_test(es_admin)
 def editar_proceso(request, pk):
     proceso = get_object_or_404(Proceso, pk=pk)
@@ -728,7 +1330,7 @@ def editar_proceso(request, pk):
 
 # Eliminar proceso
 
-@ login_required
+@ firebase_login_required
 @ user_passes_test(es_admin)
 def eliminar_proceso(request, pk):
     proceso = get_object_or_404(Proceso, pk=pk)
@@ -745,13 +1347,13 @@ def es_supervisor(user):
 
 # Gestión de Citas
 
-@ login_required
+@ firebase_login_required
 def lista_citas(request):
     citas = Cita.objects.all()
     return render(request, 'citas/lista_citas.html', {'citas': citas})
 
 
-@login_required
+@ firebase_login_required
 def registrar_cita(request):
     user = request.user
     es_supervisor_o_admin = user.is_superuser or user.groups.filter(
@@ -783,7 +1385,7 @@ def registrar_cita(request):
     return render(request, 'citas/registrar_cita.html', context)
 
 
-@ login_required
+@ firebase_login_required
 def editar_cita(request, pk):
     cita = get_object_or_404(Cita, pk=pk)
     if request.method == 'POST':
@@ -802,7 +1404,7 @@ def editar_cita(request, pk):
     return render(request, 'citas/editar_cita.html', {'form': form, 'cita': cita})
 
 
-@ login_required
+@ firebase_login_required
 def eliminar_cita(request, pk):
     cita = get_object_or_404(Cita, pk=pk)
     cita.delete()
@@ -812,13 +1414,13 @@ def eliminar_cita(request, pk):
 
 # Gestion de Pagos
 
-@ login_required
+@ firebase_login_required
 def lista_pagos(request):
     pagos = Pago.objects.all()
     return render(request, 'pagos/lista_pagos.html', {'pagos': pagos})
 
 
-@ login_required
+@ firebase_login_required
 def registrar_pago(request):
     if request.method == 'POST':
         form = PagoForm(request.POST)
@@ -833,7 +1435,7 @@ def registrar_pago(request):
     return render(request, 'pagos/registrar_pago.html', {'form': form})
 
 
-@ login_required
+@ firebase_login_required
 def editar_pago(request, pk):
     pago = get_object_or_404(Pago, pk=pk)
     if request.method == 'POST':
@@ -849,13 +1451,13 @@ def editar_pago(request, pk):
 
 # Gestión de Cotizaciones
 
-@ login_required
+@ firebase_login_required
 def lista_cotizaciones(request):
     cotizaciones = Cotizacion.objects.all()
     return render(request, 'cotizaciones/lista_cotizaciones.html', {'cotizaciones': cotizaciones})
 
 
-@ login_required
+@ firebase_login_required
 def registrar_cotizacion(request):
     if request.method == 'POST':
         form = CotizacionForm(request.POST)
@@ -868,7 +1470,7 @@ def registrar_cotizacion(request):
     return render(request, 'cotizaciones/registrar_cotizacion.html', {'form': form})
 
 
-@ login_required
+@ firebase_login_required
 @ user_passes_test(es_admin)
 def editar_cotizacion(request, pk):
     cotizacion = get_object_or_404(Cotizacion, pk=pk)
@@ -883,7 +1485,7 @@ def editar_cotizacion(request, pk):
     return render(request, 'cotizaciones/editar_cotizacion.html', {'form': form})
 
 
-@ login_required
+@ firebase_login_required
 @ user_passes_test(es_admin)
 def eliminar_cotizacion(request, pk):
     cotizacion = get_object_or_404(Cotizacion, pk=pk)
@@ -892,7 +1494,7 @@ def eliminar_cotizacion(request, pk):
     return redirect('lista_cotizaciones')
 
 
-@login_required
+@ firebase_login_required
 def pagar_cotizacion(request, pk):
     cotizacion = get_object_or_404(Cotizacion, pk=pk)
 
@@ -963,7 +1565,7 @@ def final_url(request):
 # Exportar a Excel
 
 
-@ login_required
+@ firebase_login_required
 @ user_passes_test(es_admin)
 def exportar_datos(request):
     wb = Workbook()
@@ -988,41 +1590,82 @@ def exportar_datos(request):
 # Vista para mostrar los datos
 
 
-@ login_required
-@ user_passes_test(es_admin)
-def mostrar_procesos(request):
+# Vista para mostrar los datos y el formulario
+@ firebase_login_required
+@user_passes_test(es_admin)
+def configurar_reporte_procesos(request):
+    form = ReporteProcesosForm()  # Asumiendo que has creado el formulario de filtros
+    return render(request, 'procesos/reporte_form.html', {'form': form})
+
+# Vista para exportar los procesos filtrados
+
+
+@ firebase_login_required
+@user_passes_test(es_admin)
+def exportar_procesos(request):
+    if request.method == 'GET':
+        return configurar_reporte_procesos(request)
+
+    form = ReporteProcesosForm(request.POST)
+    if not form.is_valid():
+        return render(request, 'procesos/reporte_form.html', {'form': form})
+
+    # Obtener parámetros del formulario
+    fecha_inicio = form.cleaned_data.get('fecha_inicio')
+    fecha_fin = form.cleaned_data.get('fecha_fin')
+    fases = form.cleaned_data.get('fases')
+    estado = form.cleaned_data.get('estado')
+    incluir_inactivos = form.cleaned_data.get('incluir_inactivos')
+
+    # Crear el libro de Excel
+    wb = Workbook()
+    ws_resumen = wb.active
+    ws_resumen.title = "Resumen de Procesos"
+
+    # Agregar parámetros del reporte
+    ws_resumen.append(['REPORTE DE PROCESOS'])
+    ws_resumen.append(
+        ['Fecha de generación:', timezone.now().strftime('%Y-%m-%d %H:%M:%S')])
+    ws_resumen.append(['Parámetros del reporte:'])
+    ws_resumen.append(['Fecha inicio:', fecha_inicio or 'No especificada'])
+    ws_resumen.append(['Fecha fin:', fecha_fin or 'No especificada'])
+    ws_resumen.append(['Fases:', ', '.join(fases) if fases else 'Todas'])
+    ws_resumen.append(['Estado:', estado or 'Todos'])
+    ws_resumen.append([])
+
+    # Filtrar procesos según parámetros
     procesos = Proceso.objects.all()
-    return render(request, 'exportar_datos.html', {'procesos': procesos})
 
+    if not incluir_inactivos:
+        procesos = procesos.filter(estado_proceso='activo')
 
-# Vista de dashboard
+    if fecha_inicio:
+        procesos = procesos.filter(fecha_inicio__gte=fecha_inicio)
 
-@login_required
-def dashboard(request):
-    # Verificar si el usuario tiene el rol adecuado
-    if not request.user.groups.filter(name__in=['Trabajadores', 'Supervisores', 'Administradores']).exists():
-        return HttpResponseForbidden("No tienes permiso para ver esta página.")
+    if fecha_fin:
+        procesos = procesos.filter(fecha_fin__lte=fecha_fin)
 
-    # Filtrar cotizaciones pendientes
-    cotizaciones_pendientes = Cotizacion.objects.filter(
-        estado='pendiente').count()
+    if fases:
+        procesos = procesos.filter(fase_proceso__in=fases)
 
-    # Filtrar ordenes activas
-    ordenes_activas = Proceso.objects.filter(
-        fase_proceso=['iniciado', 'en_progreso']).count()
+    if estado:
+        procesos = procesos.filter(estado_proceso=estado)
 
-    # Filtrar ordenes pendientes
-    ordenes_pendientes = Proceso.objects.filter(
-        estado_proceso='pendiente').count()
+    # Agregar los datos de los procesos al archivo Excel
+    ws_resumen.append(['ID Proceso', 'Fase', 'Descripción',
+                      'Fecha de inicio', 'Fecha de fin', 'Estado'])
+    for proceso in procesos:
+        ws_resumen.append([proceso.id_proceso, proceso.fase_proceso, proceso.descripcion,
+                          proceso.fecha_inicio, proceso.fecha_fin, proceso.estado_proceso])
 
-    print("Cotizaciones pendientes:", cotizaciones_pendientes)
-    print("Órdenes activas:", ordenes_activas)
-    print("Órdenes pendientes:", ordenes_pendientes)
+    # Crear la respuesta HTTP con el archivo Excel
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=Reporte_Procesos_{
+        timezone.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
 
-    context = {
-        'cotizaciones_pendientes': cotizaciones_pendientes,
-        'ordenes_activas': ordenes_activas,
-        'ordenes_pendientes': ordenes_pendientes,
-    }
+    wb.save(response)
+    return response
 
     return render(request, 'inicio.html', context)

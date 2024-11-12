@@ -12,7 +12,15 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path, os
 from decouple import config
+import firebase_admin
+from firebase_admin import credentials, firestore
 
+# Inicializar la aplicación de Firebase
+cred = credentials.Certificate("secrets/firebase-admin-credentials.json")
+firebase_admin.initialize_app(cred)
+
+# Inicializar Firestore
+db = firestore.client()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,6 +45,10 @@ LOGIN_REDIRECT_URL = 'mi_cuenta'
 # URL a la que se redirigirá después de cerrar sesión que es el inicio
 LOGOUT_REDIRECT_URL = 'inicio'
 
+SESSION_COOKIE_AGE = 86400  # Duración de la sesión en segundos (24 horas)
+
+# La sesión persiste aunque se cierre el navegador
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 # Application definition
 
@@ -52,11 +64,16 @@ INSTALLED_APPS = [
     'crispy_bootstrap4',
     'fcm_django',
     'swapper',
+    'corsheaders',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework.authtoken',
 ]
 
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -156,9 +173,58 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
-
+MEDIA_URL = '/media/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CSRF_TRUSTED_ORIGINS = ['http://localhost:5173']
+
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+    'http://localhost:5174'  # URL del frontend en desarrollo
+]
+CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+<<<<<<< HEAD
+=======
+
+>>>>>>> 1db123c63ffef8cc3dc23210382882e5234e26fa
