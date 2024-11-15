@@ -14,13 +14,10 @@ from pathlib import Path, os
 from decouple import config
 import firebase_admin
 from firebase_admin import credentials, firestore
+from datetime import timedelta
 
-# Inicializar la aplicación de Firebase
-cred = credentials.Certificate("secrets/firebase-admin-credentials.json")
+cred = credentials.Certificate('secrets/firebase-admin-credentials.json')
 firebase_admin.initialize_app(cred)
-
-# Inicializar Firestore
-db = firestore.client()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -123,9 +120,8 @@ MERCADOPAGO_ACCESS_TOKEN = 'TEST-108293230061725-110916-a2e88e07fc22885c22baa836
 
 # Firebase
 
-FCM_DJANGO_SETTINGS = {
-    "FCM_SERVER_KEY": "AIzaSyAW7rGZXp6Vzn6NaYGlTx9WQEDZaCzbSL8",
-}
+# Inicializar Firestore
+db = firestore.client()
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
@@ -133,6 +129,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'nassopinares@gmail.com'
 EMAIL_HOST_PASSWORD = 'Segunda2_carril'
+SITE_URL = 'http://localhost:8000'
 
 
 SWAPPABLE_MODELS = {'fcm_django.FCMDevice': 'miapp.CustomFCMDevice',
@@ -223,4 +220,10 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
         'rest_framework.permissions.IsAuthenticated',
     ],
+}
+
+SIMPLE_JWT = {
+    # Cambia la duración según tus necesidades
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }

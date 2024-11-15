@@ -1,9 +1,6 @@
 # Importaciones de Django
-from .models import Perfil, Dueño, Vehiculo, Proceso, Pago, Cita, Cotizacion
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import login, authenticate, get_user_model
 from django.contrib.auth.models import User, Group
@@ -13,32 +10,12 @@ from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.auth.mixins import UserPassesTestMixin, PermissionRequiredMixin
 from fcm_django.api.rest_framework import FCMDevice
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from django import forms
 from django.core.mail import send_mail
-from firebase_admin import auth
-from django.contrib import messages
-from django.shortcuts import render
-from django.http import JsonResponse
 from django.conf import settings
-
-# Importaciones de la aplicación
-from .models import CustomUserManager, CustomUser, Perfil, Dueño, Vehiculo, Servicio, Administrador, Supervisor, Trabajador, Notificacion, Proceso, Pago, Cita, Cotizacion, DetalleCotizacion
-from .forms import AdminCreationForm, AdminTrabajadorForm, AdminSupervisorForm, UserRegistrationForm, DueñoForm, VehiculoForm, CitaForm, ServicioForm, PagoForm, ProcesoForm, NotificacionForm, CotizacionForm, DetalleCotizacionForm, ReporteProcesosForm
-from .utils import enviar_correo_confirmacion, confirmar_proceso
-from .firebase import reset_password
-
-from .serializers import CitaSerializer, VehiculoSerializer, TrabajadorSerializer, UserSerializer, UserRegistrationSerializer, ProcesoSerializer, PagoSerializer
-from .serializers import CitaSerializer, VehiculoSerializer, TrabajadorSerializer, UserSerializer, UserRegistrationSerializer, ProcesoSerializer, PagoSerializer
-from .serializers import CitaSerializer, VehiculoSerializer, TrabajadorSerializer, UserSerializer, UserRegistrationSerializer, ProcesoSerializer, PagoSerializer
-
-
-# Importaciones de Django REST Framework
-from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.http import JsonResponse
+from django.core.paginator import Paginator
+from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from rest_framework import generics, status, permissions
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
@@ -46,22 +23,79 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from rest_framework_simplejwt.tokens import RefreshToken
-
-from rest_framework_simplejwt.tokens import RefreshToken
-
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from django.views.decorators.csrf import csrf_protect, csrf_exempt
-from rest_framework.authentication import TokenAuthentication
+from django.contrib.auth.models import User
+from django.contrib import auth
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-# Librerias
+
+# Importaciones de la aplicación
+from .models import Perfil, Dueño, Vehiculo, Proceso, Pago, Cita, Cotizacion, CustomUserManager, CustomUser, Servicio, Administrador, Supervisor, Trabajador, Notificacion, DetalleCotizacion, PasswordResetToken
+from .forms import AdminCreationForm, AdminTrabajadorForm, AdminSupervisorForm, UserRegistrationForm, DueñoForm, VehiculoForm, CitaForm, ServicioForm, PagoForm, ProcesoForm, NotificacionForm, CotizacionForm, DetalleCotizacionForm, ReporteProcesosForm
+from .utils import enviar_correo
+from .firebase import reset_password, db
+from .serializers import CitaSerializer, VehiculoSerializer, TrabajadorSerializer, UserSerializer, UserRegistrationSerializer, ProcesoSerializer, PagoSerializer
+
+# Librerías
 import pandas as pd
 import mercadopago
 from openpyxl import Workbook
 from functools import wraps
 
-# Vistas de la API
+
+def reset_password(request, token):
+    try:
+        # Buscar el token en la base de datos
+        reset_token = PasswordResetToken.objects.get(token=token)
+
+        # Verificar si el token ha expirado
+        if reset_token.expiration_time < timezone.now():
+            messages.error(request, "El enlace ha expirado.")
+            return redirect("reset_password")
+
+        # Verificar si el formulario de nueva contraseña se ha enviado
+        if request.method == "POST":
+            new_password = request.POST.get("password")
+            confirm_password = request.POST.get("confirm_password")
+
+            if new_password == confirm_password:
+                # Establecer la nueva contraseña
+                user = reset_token.user
+                user.set_password(new_password)
+                user.save()
+
+                # Eliminar el token de restablecimiento (por seguridad)
+                reset_token.delete()
+
+                messages.success(
+                    request, "Contraseña restablecida correctamente.")
+                return redirect("login")
+            else:
+                messages.error(request, "Las contraseñas no coinciden.")
+
+        return render(request, "reset_password.html")
+
+    except PasswordResetToken.DoesNotExist:
+        messages.error(request, "Token inválido.")
+        return redirect("reset_password")
+
+# Operación de escritura en Firebase
+
+
+def agregar_datos(request):
+    try:
+        # Reemplaza 'mi_coleccion' y 'mi_documento' con los nombres correspondientes en Firestore
+        doc_ref = db.collection('mi_coleccion').document('mi_documento')
+        doc_ref.set({
+            'campo1': 'valor1',
+            'campo2': 'valor2',
+        })
+        print("Datos añadidos correctamente a Firebase")
+        return JsonResponse({'mensaje': 'Datos añadidos correctamente a Firebase'})
+    except Exception as e:
+        print(f"Error al añadir datos: {e}")
+        return JsonResponse({'error': f'Error al añadir datos: {e}'})
+
 
 # Vista del login
 
@@ -187,9 +221,6 @@ class listarvehiculosAPI(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return Response({"detail": "No autorizado"}, status=403)
-
         vehiculos = Vehiculo.objects.all()
         serializer = VehiculoSerializer(vehiculos, many=True)
         return Response(serializer.data)
@@ -327,8 +358,6 @@ class PagoCreate(PermissionRequiredMixin, APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-##################################################################################
 
 # Verificar tokens
 
@@ -359,8 +388,6 @@ def firebase_login_required(view_func):
             return JsonResponse({'error': 'Token inválido'}, status=401)
     return _wrapped_view
 
-# Vistas de la API#########################################################3
-
 # Vista del login
 
 
@@ -637,10 +664,6 @@ class PagoCreate(PermissionRequiredMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-##################################################################################
-
-# Vistas de la API#########################################################3
-
 # Vista del login
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
@@ -670,7 +693,7 @@ def api_registrar_usuario(request):
 
     return JsonResponse({'error': 'Método no permitido.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-# LOgin
+# Login
 
 
 @api_view(['POST'])
@@ -913,13 +936,9 @@ class PagoCreate(PermissionRequiredMixin, APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-##################################################################################
 
 
 # Usuario
-
 
 CustomUser = get_user_model()
 
@@ -1479,6 +1498,10 @@ def lista_vehiculos(request):
         return redirect('inicio')
 
     vehiculos = dueño.vehiculos.all()
+
+    paginator = Paginator(vehiculos, 10)
+    page_number = request.GET.get('page')
+    vehiculos_page = paginator.get_page(page_number)
 
     vehiculos_procesos = [
         {

@@ -13,6 +13,19 @@ from fcm_django.models import FCMDevice
 
 import re
 
+from django.db import models
+from django.contrib.auth.models import User
+
+
+class PasswordResetToken(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE)
+    token = models.CharField(max_length=32)
+    expiration_time = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Token para {self.user.email}"
 
 # Usuarios
 
@@ -77,7 +90,7 @@ class Perfil(models.Model):
 # Asignacion de grupos segun rol
 
 @receiver(post_save, sender=Perfil)
-def asignar_grupo_por_rol(usuario, rol):
+def asignar_grupo_por_rol(sender, instance, created, **kwargs):
     # Obtener todos los grupos necesarios de una sola vez
     grupos = Group.objects.filter(
         name__in=['Administradores', 'Trabajadores', 'Supervisores', 'Dueños'])
@@ -94,20 +107,20 @@ def asignar_grupo_por_rol(usuario, rol):
 
     # Asignar el grupo correspondiente según el rol
     grupo_asignado = None
-    if rol == 'Administrador':
+    if instance.rol == 'administrador':
         grupo_asignado = grupos_existentes['Administradores']
-    elif rol == 'Trabajador':
+    elif instance.rol == 'trabajador':
         grupo_asignado = grupos_existentes['Trabajadores']
-    elif rol == 'Supervisor':
+    elif instance.rol == 'supervisor':
         grupo_asignado = grupos_existentes['Supervisores']
-    elif rol == 'Dueño':
+    elif instance.rol == 'dueño':
         grupo_asignado = grupos_existentes['Dueños']
     else:
         raise ValueError("Rol no reconocido")
 
-    # Agregar el grupo al usuario
-    usuario.groups.add(grupo_asignado)
-    usuario.save()
+    # Agregar el grupo al usuario asociado al perfil
+    instance.user.groups.add(grupo_asignado)
+    instance.user.save()
 
 
 # Crear el perfil
@@ -132,13 +145,8 @@ def manejar_perfil_usuario(sender, instance, created, **kwargs):
 
 class Dueño(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    rut_validator = RegexValidator(
-        regex=r'^\d{7,8}-[0-9kK]{1}$',
-        message="El RUT debe tener el formato 12345678-9."
-    )
-
-    rut = models.CharField(max_length=10, unique=True,
-                           validators=[rut_validator])
+    rut = models.CharField(max_length=10, unique=True, validators=[RegexValidator(
+        regex=r'^\d{1,2}\.\d{3}\.\d{3}-[0-9Kk]$', message="El RUT debe tener un formato válido, como 12.345.678-9")])
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
     telefono = models.CharField(max_length=15)
@@ -253,7 +261,15 @@ class Servicio(models.Model):
 
 
 class Administrador(models.Model):
-    rut = models.CharField(max_length=12, primary_key=True)
+    rut = models.CharField(
+        max_length=12,
+        primary_key=True,
+        unique=True,
+        validators=[RegexValidator(
+            regex=r'^\d{1,2}\.\d{3}\.\d{3}-[0-9Kk]$',
+            message="El RUT debe tener un formato válido, como 12.345.678-9"
+        )]
+    )
     nombre = models.CharField(max_length=50)
     apellido = models.CharField(max_length=50)
     telefono = models.CharField(max_length=15)
@@ -285,7 +301,15 @@ class Administrador(models.Model):
 
 
 class Supervisor(models.Model):
-    rut = models.CharField(max_length=12, primary_key=True)
+    rut = models.CharField(
+        max_length=12,
+        primary_key=True,
+        unique=True,
+        validators=[RegexValidator(
+            regex=r'^\d{1,2}\.\d{3}\.\d{3}-[0-9Kk]$',
+            message="El RUT debe tener un formato válido, como 12.345.678-9"
+        )]
+    )
     nombre = models.CharField(max_length=50)
     apellido = models.CharField(max_length=50)
     telefono = models.CharField(max_length=15)
@@ -318,7 +342,11 @@ class Supervisor(models.Model):
 
 class Trabajador(models.Model):
     id_trabajador = models.AutoField(primary_key=True, default=0)
-    rut = models.CharField(max_length=12)
+    rut = models.CharField(max_length=12, validators=[RegexValidator(
+        regex=r'^\d{1,2}\.\d{3}\.\d{3}-[0-9Kk]$',
+        message="El RUT debe tener un formato válido, como 12.345.678-9"
+    )]
+    )
     nombre = models.CharField(max_length=50)
     apellido = models.CharField(max_length=50)
     telefono = models.CharField(max_length=15)

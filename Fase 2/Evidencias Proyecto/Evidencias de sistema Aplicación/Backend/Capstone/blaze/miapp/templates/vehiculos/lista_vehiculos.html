@@ -20,8 +20,7 @@
       <ul>
         {% if item.procesos %} {% for proceso in item.procesos %}
         <li>
-          Fase: {{ proceso.fase_proceso }} 
-          - Estado: {{ proceso.estado_proceso}}
+          Fase: {{ proceso.fase_proceso }} - Estado: {{ proceso.estado_proceso}}
         </li>
         {% endfor %} {% else %}
         <li>No hay procesos asociados a este vehículo.</li>
@@ -76,5 +75,20 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
+<div class="pagination">
+  <span class="step-links">
+    {% if vehiculos.has_previous %}
+    <a href="?page=1">&laquo; first</a>
+    <a href="?page={{ vehiculos.previous_page_number }}">previous</a>
+    {% endif %}
+    <span class="current">
+      Page {{ vehiculos.number }} of {{ vehiculos.paginator.num_pages }}.
+    </span>
+    {% if vehiculos.has_next %}
+    <a href="?page={{ vehiculos.next_page_number }}">next</a>
+    <a href="?page={{ vehiculos.paginator.num_pages }}">last &raquo;</a>
+    {% endif %}
+  </span>
 </div>
 {% endblock %}

@@ -2,8 +2,7 @@
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import EditarVehiculoAPI, listarvehiculosAPI, EditarCitaAPIView, ListaCitasAPI, CitaCreateAPI, VehiculoCreate, api_registrar_usuario, mi_cuenta, login_form_view, ListarProcesosAPI, EditarProcesoAPI, RegistrarProcesoAPI, api_listar_pagos, lista_trabajadoresAPI
 from django.urls import path
-<< << << < HEAD
-<< << << < HEAD
+
 
 urlpatterns = [
     # Usando JWT para el inicio de sesión

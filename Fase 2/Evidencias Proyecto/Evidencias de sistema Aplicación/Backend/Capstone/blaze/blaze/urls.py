@@ -19,28 +19,28 @@ from django.urls import path
 from miapp import views
 from django.urls import include
 from django.contrib.auth import views as auth_views
+from miapp.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
+
+    # Tokens
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
     path('admin/', admin.site.urls),
     path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
+    path('agregar-datos/', views.agregar_datos, name='agregar_datos'),
 
     # Gestion de usuarios
     path('', views.inicio, name='inicio'),
     path('login/', views.login_view, name='login'),
     path('mi-cuenta/', views.mi_cuenta, name='mi_cuenta'),
     path('registrar-usuario/', views.registrar_usuario, name='registrar_usuario'),
-    # Contraseña firebase
-    path('reset-password/', views.reset_password, name='reset_password'),
 
-    # Recuperacion de contraseña
-    path('password_reset/', auth_views.PasswordResetView.as_view(),
-         name='password_reset'),
-    path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(),
-         name='password_reset_done'),
-    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(),
-         name='password_reset_confirm'),
-    path('reset/done/', auth_views.PasswordResetCompleteView.as_view(),
-         name='password_reset_complete'),
+    # Contraseña firebase
+    path('reset-password/<str:token>/',
+         views.reset_password, name='reset_password'),
 
     # Gestion de vehiculos
     path('vehiculos/registrar/', views.registrar_vehiculo,

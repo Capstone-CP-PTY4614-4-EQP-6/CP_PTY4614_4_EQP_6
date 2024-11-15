@@ -72,7 +72,6 @@ class AdminTrabajadorForm(forms.ModelForm):
 
 
 class AdminSupervisorForm(forms.ModelForm):
-    # Añadimos el campo de contraseña como un campo adicional
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'}))
 

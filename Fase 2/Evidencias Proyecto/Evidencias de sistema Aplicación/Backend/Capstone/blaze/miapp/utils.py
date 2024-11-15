@@ -1,14 +1,27 @@
-from pyfcm import FCMNotification
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import Proceso, Notificacion
 import logging
+from google.oauth2 import service_account
+import google.auth.transport.requests
+import requests
+import json
+
 
 logger = logging.getLogger(__name__)
 
-# Configura la conexión con Firebase utilizando la Server Key
-push_service = FCMNotification(
-    api_key=settings.AIzaSyAW7rGZXp6Vzn6NaYGlTx9WQEDZaCzbSL8)
+# Carga las credenciales de la cuenta de servicio
+credentials = service_account.Credentials.from_service_account_file(
+    'secrets/firebase-admin-credentials.json',
+    scopes=["https://www.googleapis.com/auth/cloud-platform"]
+)
+
+
+def obtener_token_acceso():
+    """Obtiene el token de acceso de OAuth 2.0 para Firebase"""
+    request = google.auth.transport.requests.Request()
+    credentials.refresh(request)
+    return credentials.token
 
 
 def enviar_correo(dueño_email, asunto, mensaje):
@@ -19,11 +32,29 @@ def enviar_correo(dueño_email, asunto, mensaje):
 
 
 def enviar_notificacion_push(token, mensaje):
-    """Envía una notificación push al dispositivo usando Firebase"""
+    """Envía una notificación push al dispositivo usando la API HTTP v1 de Firebase"""
+    access_token = obtener_token_acceso()
+    url = "https://fcm.googleapis.com/v1/projects/tu-proyecto-id/messages:send"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    body = {
+        "message": {
+            "token": token,
+            "notification": {
+                "title": "Actualización de proceso",
+                "body": mensaje
+            }
+        }
+    }
+
     try:
-        result = push_service.notify_single_device(
-            registration_id=token, message_body=mensaje)
-        logger.info(f"Notificación enviada a {token}: {result}")
+        response = requests.post(url, headers=headers, data=json.dumps(body))
+        if response.status_code == 200:
+            logger.info(f"Notificación enviada a {token}: {response.json()}")
+        else:
+            logger.error(f"Error enviando notificación: {response.content}")
     except Exception as e:
         logger.error(f"Error enviando notificación: {e}")
         raise
