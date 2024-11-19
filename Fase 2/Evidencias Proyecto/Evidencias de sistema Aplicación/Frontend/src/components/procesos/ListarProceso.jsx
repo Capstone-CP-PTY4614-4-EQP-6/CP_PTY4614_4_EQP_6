@@ -38,6 +38,17 @@ function ListarProceso() {
     }
   }, [location.state]);
 
+  const formatearFecha = (fechaISO) => {
+    const fecha = new Date(fechaISO);
+    const opciones = {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    };
+    return fecha.toLocaleString('es-ES', opciones).replace(',', '');
+  };
 
   return (
     <Container maxWidth="md" sx={{ marginTop: '2rem', position: 'relative' }}>
@@ -67,8 +78,8 @@ function ListarProceso() {
                       <TableCell>{proceso.vehiculo}</TableCell>
                       <TableCell>{proceso.fase_proceso}</TableCell>
                       <TableCell>{proceso.descripcion}</TableCell>
-                      <TableCell>{proceso.fecha_inicio}</TableCell>
-                      <TableCell>{proceso.fecha_fin}</TableCell>
+                      <TableCell>{formatearFecha(proceso.fecha_inicio)}</TableCell>
+                      <TableCell>{formatearFecha(proceso.fecha_fin)}</TableCell>
                       <TableCell>{proceso.estado_proceso}</TableCell>
                       <TableCell>{proceso.prioridad}</TableCell>
                       <TableCell>{proceso.trabajador}</TableCell>

@@ -104,6 +104,7 @@ export default function LabelBottomNavigation() {
       <BottomNavigationAction
         label="Mensajes"
         value="mensajes"
+        href='/cotizaciones'
         sx={{
           color: 'white',
           display: 'flex',

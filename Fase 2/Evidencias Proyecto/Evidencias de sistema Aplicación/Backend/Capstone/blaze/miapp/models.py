@@ -86,7 +86,6 @@ class Perfil(models.Model):
     def __str__(self):
         return f"{self.user.email} - {self.rol}"
 
-
 # Asignacion de grupos segun rol
 
 @receiver(post_save, sender=Perfil)
@@ -145,7 +144,7 @@ def manejar_perfil_usuario(sender, instance, created, **kwargs):
 
 class Dueño(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    rut = models.CharField(max_length=10, unique=True, validators=[RegexValidator(
+    rut = models.CharField(max_length=12, unique=True, validators=[RegexValidator(
         regex=r'^\d{1,2}\.\d{3}\.\d{3}-[0-9Kk]$', message="El RUT debe tener un formato válido, como 12.345.678-9")])
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
@@ -443,8 +442,9 @@ class Proceso(models.Model):
 class Pago(models.Model):
     METODO_PAGO_CHOICES = [
         ('efectivo', 'Efectivo'),
-        ('tarjeta', 'Tarjeta de Crédito'),
+        ('tarjeta', 'Tarjeta de Credito'),
         ('transferencia', 'Transferencia Bancaria'),
+        ('tarjeta_debito', 'Tarjeta de Debito'),
     ]
 
     ESTADO_PAGO_CHOICES = [

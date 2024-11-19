@@ -78,7 +78,7 @@ function RegistrarProceso() {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
-  
+    
     console.log(procesoData); // Verifica los datos antes de enviarlos
   
     axios.post('http://localhost:8000/api/procesos/crear/', procesoData, {

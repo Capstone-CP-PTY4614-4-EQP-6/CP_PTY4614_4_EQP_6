@@ -16,14 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from miapp import views
+from miapp import views, urls
 from django.urls import include
 from django.contrib.auth import views as auth_views
 from miapp.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
-
+     path('', include('miapp.urls')),
     # Tokens
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

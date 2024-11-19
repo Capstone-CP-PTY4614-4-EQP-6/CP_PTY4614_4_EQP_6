@@ -1,45 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableRow, Typography, Button, Grid2 } from '@mui/material';
+import { Table, TableBody, TableCell, TableHead, TableRow, Typography, Grid2, Fab, Box, Container } from '@mui/material';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import AddIcon from '@mui/icons-material/Add';
 
-const ListaPagos = () => {
+function ListaPagos () {
   const [pagos, setPagos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchPagos = async () => {
-      try {
-        const response = await axios.get('http://localhost:8000/api/pagos/'); // URL de tu API
-        setPagos(response.data);
-      } catch (error) {
-        setError(error.message);
-      } finally {
+ 
+    const fetchPagos =  () => {
+      const token = localStorage.getItem('accessToken');
+        axios.get('http://localhost:8000/api/pagos/',{
+          headers:{
+            'Authorization': `Bearer ${token}`}
+        })
+        .then(response => {
+          setPagos(Array.isArray(response.data) ? response.data : []);
+        })
+        .catch(error => {
+          setError(error.response ? error.response.data.message : error.message);
+          setPagos([]);
+        });
         setLoading(false);
-      }
     };
 
+useEffect (() => {
     fetchPagos();
-  }, []);
+}, []);
 
-  const handleEdit = (id) => {
-    navigate(`/editar-pago/${id}`); // Redirigir a la página de edición del pago
-  };
+useEffect (() => {
+  if(location.state?.nuevoPago){
+    console.log("Nuevo pago creado:", location.state.nuevoPago);   
+    setPagos((prevPagos) => [...prevPagos, location.state.nuevoPago]); 
+  }
+}, [location.state]);
 
-  const handleDelete = async (id) => {
-    const confirmDelete = window.confirm('¿Estás seguro de que deseas eliminar este pago?');
-    if (!confirmDelete) return;
-
-    try {
-      await axios.delete(`http://localhost:8000/api/pagos/${id}`); // Eliminar el pago desde la API
-      setPagos(pagos.filter(pago => pago.id !== id)); // Actualizar el estado local
-    } catch (error) {
-      setError(error.message);
-      alert('Ha habido un error al eliminar el pago');
-    }
-  };
 
   if (loading) {
     return <Typography variant="h6">Cargando...</Typography>;
@@ -50,42 +48,54 @@ const ListaPagos = () => {
   }
 
   return (
-    <Grid2 container>
-      <Grid2 item xs={12}>
-        <Typography variant="h2">Lista de Pagos</Typography>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Monto</TableCell>
-              <TableCell>Método de Pago</TableCell>
-              <TableCell>Fecha de Pago</TableCell>
-              <TableCell>Estado de Pago</TableCell>
-              <TableCell>Acciones</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {pagos.map((pago) => (
-              <TableRow key={pago.id}>
-                <TableCell>{pago.id}</TableCell>
-                <TableCell>{pago.monto}</TableCell>
-                <TableCell>{pago.metodo_pago}</TableCell>
-                <TableCell>{pago.fecha_pago}</TableCell>
-                <TableCell>{pago.estado_pago}</TableCell>
-                <TableCell>
-                  <Button variant="contained" color="primary" onClick={() => handleEdit(pago.id)}>
-                    Editar
-                  </Button>
-                  <Button variant="contained" color="secondary" onClick={() => handleDelete(pago.id)}>
-                    Eliminar
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+    <Container maxWidth="md" sx={{ marginTop: '2rem', position: 'relative' }}>
+      <Grid2 container justifyContent="center">
+        <Grid2>
+          {pagos.length > 0 ? (
+            <>
+              <Typography variant="h4" align="center">Lista de pagos</Typography>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>ID</TableCell>
+                    <TableCell>Vehiculo</TableCell>
+                    <TableCell>Fase actual</TableCell>
+                    <TableCell>Descripcion</TableCell>
+                    <TableCell>Fecha inicio</TableCell>
+                    <TableCell>Fecha fin</TableCell>
+                    <TableCell>Estado</TableCell>
+                    <TableCell>Prioridad</TableCell>
+                    <TableCell>Trabajador asignado</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {procesos.map((pago) => (
+                    <TableRow key={pago.id} onClick={() => navigate(`/editarproceso/${proceso.id}`)} style={{ cursor: 'pointer' }}>
+                      <TableCell>{pago.id}</TableCell>
+                      <TableCell>{pago.vehiculo}</TableCell>
+                      <TableCell>{pago.fase_pago}</TableCell>
+                      <TableCell>{pago.descripcion}</TableCell>
+                      <TableCell>{pago.fecha_inicio}</TableCell>
+                      <TableCell>{pago.fecha_fin}</TableCell>
+                      <TableCell>{pago.estado_pago}</TableCell>
+                      <TableCell>{pago.prioridad}</TableCell>
+                      <TableCell>{pago.trabajador}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
+          ) : (
+            <Box textAlign="center">
+              <Typography variant="h4">No hay pagos registrados!</Typography>
+            </Box>
+          )}
+          <Fab color="primary" aria-label="add" onClick={() => navigate('/registrarpago')} sx={{ position: 'fixed', bottom: 20, right: 20 }}>
+            <AddIcon />
+          </Fab>
+        </Grid2>
       </Grid2>
-    </Grid2>
+    </Container>
   );
 };
 

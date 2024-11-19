@@ -8,10 +8,8 @@ import RegistroPage from './pages/RegistroPage';
 import MiCuentaPage from './pages/MiCuentaPage';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 
-import CotizacionesPage from './pages/CotizacionesPage';
-
 import DueñosPage from './pages/DueñosPage';
-
+import AdminPanel from './components/AdminPanel';
 
 import ProcesosPage from './pages/ProcesosPage';
 import EditarProceso from './components/procesos/EditarProceso';
@@ -29,6 +27,10 @@ import CitasPage from './pages/CitasPage';
 import EditarCita from './components/citas/EditarCitas';
 import RegistrarCita from './components/citas/RegistrarCitas';
 
+import CotizacionesPage from './pages/CotizacionesPage';
+import EditarCotizacion from './components/cotizaciones/EditarCotizacion';
+import RegistrarCotizacion from './components/cotizaciones/RegistrarCotizacion';
+
 // const theme = createTheme({
 //   palette: {
 //     background: {
@@ -42,9 +44,9 @@ import RegistrarCita from './components/citas/RegistrarCitas';
 
 const App = () => {
   return (
-
       <BrowserRouter>
         <Routes>
+          <Route path="/admin" element={<AdminPanel />} />
           <Route path="/home" element={<Home />} />
           <Route path="/" element={<Home />} />
           <Route path="*" element={<NoMatch />} />
@@ -58,9 +60,15 @@ const App = () => {
 
           <Route path="/mi-cuenta" element={<MiCuentaPage />} />
           
-          <Route path="/cotizaciones" element={<CotizacionesPage />} />
           <Route path="/dueños" element={<DueñosPage />} />
+
           <Route path="/pagos" element={<PagosPage />} />
+          <Route path="/editarpago/:pk" element={<EditarPago />} />
+          <Route path="/registrarpago" element={<RegistrarPago />} />
+
+          <Route path="/cotizaciones" element={<CotizacionesPage />} />
+          <Route path="/editarcotizaciones/:pk" element={<EditarCotizacion />} />
+          <Route path="/registrarcotizaciones" element={<RegistrarCotizacion />} />
 
           <Route path="/procesos" element={<ProcesosPage />} />
           <Route path="/editarproceso/:pk" element={<EditarProceso />} />
@@ -71,7 +79,6 @@ const App = () => {
           <Route path="/registrarvehiculo" element={<RegistrarVehiculo />} />
         </Routes>
       </BrowserRouter>
-
   );
 };
 

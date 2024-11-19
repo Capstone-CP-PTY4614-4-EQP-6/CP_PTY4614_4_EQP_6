@@ -42,6 +42,18 @@ const ListaCitas = () => {
     }
   }, [location.state]);
 
+  const formatearFecha = (fechaISO) => {
+    const fecha = new Date(fechaISO);
+    const opciones = {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    };
+    return fecha.toLocaleString('es-ES', opciones).replace(',', '');
+  };
+
   return (
     <Container maxWidth="md" sx={{ marginTop: '2rem', position: 'relative' }}>
       <Grid2 container justifyContent="center">
@@ -65,7 +77,7 @@ const ListaCitas = () => {
                     <TableRow key={cita.id} onClick={() => navigate(`/editarcita/${cita.id}`)} style={{ cursor: 'pointer' }}>
                       <TableCell>{cita.id}</TableCell>
                       <TableCell>{cita.vehiculo}</TableCell>
-                      <TableCell>{cita.fecha_y_hora}</TableCell>
+                      <TableCell>{formatearFecha(cita.fecha_y_hora)}</TableCell>
                       <TableCell>{cita.motivo}</TableCell>
                       <TableCell>{cita.ubicacion}</TableCell>
                       <TableCell>{cita.estado_cita}</TableCell>
